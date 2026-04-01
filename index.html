@@ -81,9 +81,19 @@ tbody td{padding:6px 10px;white-space:nowrap;}
 .btn.sec{background:var(--sur2);border:1px solid var(--brd);color:var(--txt2);}
 .btn.sec:hover{border-color:var(--acc);color:var(--acc);}
 .btn.del{background:var(--red);color:#fff;}
-#load{display:none;position:fixed;inset:0;background:rgba(200,205,215,.75);z-index:999;justify-content:center;align-items:center;flex-direction:column;gap:16px;}
+#pwscreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.pwbox{background:var(--sur);border:1px solid var(--brd);border-radius:12px;padding:40px 48px;display:flex;flex-direction:column;align-items:center;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);}
+.pwbox h2{font-size:18px;font-weight:700;color:var(--acc);}
+.pwbox p{color:var(--txt2);font-size:13px;}
+.pwbox input{width:260px;padding:10px 14px;font-size:14px;border:1px solid var(--brd);border-radius:6px;outline:none;text-align:center;letter-spacing:2px;}
+.pwbox input:focus{border-color:var(--acc);}
+.pwbox button{width:260px;padding:10px;background:var(--acc);color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;}
+.pwbox button:hover{opacity:.85;}
+.pwerr{color:var(--red);font-size:12px;min-height:16px;}
+#load{display:none;position:fixed;inset:0;background:rgba(240,242,245,.92);z-index:999;justify-content:center;align-items:center;flex-direction:column;gap:16px;}
 #load.show{display:flex;}
-.lspin{width:40px;height:40px;border:3px solid var(--brd);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite;}
+.hourglass{font-size:48px;animation:hgspin 1.6s ease-in-out infinite;}
+@keyframes hgspin{0%,100%{transform:rotate(0deg);}50%{transform:rotate(180deg);}}
 @keyframes sp{to{transform:rotate(360deg);}}
 #load p{color:var(--txt);font-size:15px;}
 #empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--txt2);}
@@ -95,7 +105,17 @@ tbody td{padding:6px 10px;white-space:nowrap;}
 </head>
 <body>
 <div id="app">
-<div id="load"><div class="lspin"></div><p id="ltxt">Wird geladen...</p></div>
+<div id="pwscreen">
+  <div class="pwbox">
+    <h2>&#128274; Nachorder Tool</h2>
+    <p>Bitte Passwort eingeben</p>
+    <input type="password" id="pwinp" placeholder="Passwort..." onkeydown="if(event.key==='Enter') checkPw()">
+    <button onclick="checkPw()">Anmelden</button>
+    <div class="pwerr" id="pwerr"></div>
+  </div>
+</div>
+
+<div id="load"><div class="hourglass">&#8987;</div><p id="ltxt" style="font-size:15px;font-weight:600;color:var(--txt);">Wird geladen...</p></div>
 <div id="spin"><div class="mspin"></div> Wird gefiltert...</div>
 
 <div id="hdr">
@@ -325,6 +345,20 @@ function calcRow(row){
   r._ampel  =ampel;
   r._cluster=getCluster(row);
   return r;
+}
+
+var PW = 'Einkauf2026Dashboard';
+
+function checkPw(){
+  var val = document.getElementById('pwinp').value;
+  if(val === PW){
+    document.getElementById('pwscreen').style.display = 'none';
+    loadFromGithub();
+  } else {
+    document.getElementById('pwerr').textContent = 'Falsches Passwort. Bitte erneut versuchen.';
+    document.getElementById('pwinp').value = '';
+    document.getElementById('pwinp').focus();
+  }
 }
 
 var CSV_URL = 'https://raw.githubusercontent.com/fxxlfilippoc-hue/Nachordertool/main/import_fertig.csv';
@@ -692,7 +726,8 @@ function resetAll(){
 
 loadS();
 try{ var ts=localStorage.getItem('no_ts'); if(ts) document.getElementById('lupd').innerHTML='Letzte Aktualisierung: <strong>'+ts+'</strong>'; }catch(e){}
-loadFromGithub();
+// Auto-focus password field
+document.getElementById('pwinp').focus();
 </script>
 </body>
 </html>
