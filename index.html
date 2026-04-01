@@ -306,12 +306,15 @@ function checkPw() {
 }
 
 function findCol(row, name) {
-  var lo = name.toLowerCase();
+  var lo = name.toLowerCase().trim();
   var keys = Object.keys(row);
   for (var i = 0; i < keys.length; i++) {
-    if (keys[i].toLowerCase().trim() === lo) {
-      return row[keys[i]];
-    }
+    var k = keys[i].toLowerCase().replace(/\s/g,'').replace(/\uFEFF/g,'').trim();
+    if (k === lo) return row[keys[i]];
+  }
+  // fallback: partial match
+  for (var j = 0; j < keys.length; j++) {
+    if (keys[j].toLowerCase().indexOf(lo) !== -1) return row[keys[j]];
   }
   return '';
 }
@@ -358,7 +361,7 @@ function calcRow(row) {
   r._man       = overrides[row['Artikelnummer']] || '';
   r._ampel     = ampel;
   r._cluster   = getCluster(row);
-  r._bemerkung = findCol(row, 'bemerkung');
+  r._bemerkung = findCol(row, 'bemerkung') || row['BEMERKUNG'] || row['Bemerkung'] || row['bemerkung'] || '';
   return r;
 }
 
@@ -614,7 +617,7 @@ function renderTable() {
         dot.className = 'dot ' + v;
         td.appendChild(dot);
       } else if (col.k === '_trend') {
-        if (v) { td.textContent = 'Trend'; td.style.color = 'var(--yel)'; td.style.fontWeight = '600'; }
+        if (v) { td.textContent = '\uD83D\uDD25'; td.style.fontSize = '14px'; }
       } else if (col.k === '_best') {
         var hm = row._man !== '' && row._man !== undefined && row._man !== null;
         td.textContent = hm ? '-' : (v > 0 ? v : '-');
