@@ -161,7 +161,8 @@ tbody td{padding:6px 10px;white-space:nowrap;}
   <div class="fg"><label>Kred. Artikelnummer</label><input type="text" id="fK" placeholder="Kred-Nr..." oninput="applyF()"></div>
   <div class="fg"><label>Marke</label><div class="msw" id="msM"></div></div>
   <div class="fg"><label>Saison</label><div class="msw" id="msS"></div></div>
-  <div class="fg"><label>Kreditor</label><div class="msw" id="msKred"></div></div>
+  <div class="fg"><label>Category Manager</label><div class="msw" id="msCat"></div></div>
+  <div class="fg"><label>Kreditorenname</label><div class="msw" id="msKred"></div></div>
   <div class="fg" style="flex-direction:row;align-items:center;gap:8px;"><label>Cluster:</label><div class="ctabs" id="ctabs"></div></div>
   <div style="margin-left:auto;display:flex;align-items:flex-end;"><button class="btn sec" onclick="clearF()">x Filter loeschen</button></div>
 </div>
@@ -222,26 +223,28 @@ var actCluster = 'Alle';
 var ftimer = null;
 var overrides = {};
 
-var COLS = [
-  {k:'_ampel',          h:'Status'},
-  {k:'Artikelnummer',   h:'Art.-Nr.'},
-  {k:'Modellnummer',    h:'Modell-Nr.'},
-  {k:'Kred_Artikelnummer', h:'Kred. Art.-Nr.'},
-  {k:'Bezeichnung',     h:'Bezeichnung'},
-  {k:'Marke',           h:'Marke'},
-  {k:'Warengruppe',     h:'WG-Code'},
-  {k:'Saison',          h:'Saison'},
-  {k:'Bestand_verfügbar', h:'Bestand'},
-  {k:'Offen',           h:'Offen'},
-  {k:'_verf',           h:'Verfügbar'},
-  {k:'Absatz_7T',       h:'VK Menge 7T'},
-  {k:'Absatz_30T',      h:'VK Menge 30T'},
-  {k:'_trend',          h:'Trend'},
-  {k:'_best',           h:'Bestellvorschlag'},
-  {k:'_man',            h:'Meine Menge'},
-  {k:'Kreditorenname',  h:'Kreditor'},
-  {k:'Letzter_Einkaufspreis_Wert', h:'Letzt. EK'},
-  {k:'_bemerkung',      h:'Bemerkung'}
+  var COLS = [
+  {k:'_ampel',                      h:'Status'},
+  {k:'Artikelnummer',               h:'Art.-Nr.'},
+  {k:'Modellnummer',                h:'Modell-Nr.'},
+  {k:'Kred_Artikelnummer',          h:'Kred. Art.-Nr.'},
+  {k:'Bezeichnung',                 h:'Bezeichnung'},
+  {k:'Marke',                       h:'Marke'},
+  {k:'Warengruppe',                 h:'WG-Code'},
+  {k:'Saison',                      h:'Saison'},
+  {k:'Bestand_verfügbar',           h:'Bestand'},
+  {k:'Offen',                       h:'Offen'},
+  {k:'_verf',                       h:'Verfügbar'},
+  {k:'Absatz_7T',                   h:'VK Menge 7T'},
+  {k:'Absatz_30T',                  h:'VK Menge 30T'},
+  {k:'_trend',                      h:'Trend'},
+  {k:'_best',                       h:'Bestellvorschlag'},
+  {k:'_man',                        h:'Meine Menge'},
+  {k:'Spalte7',                     h:'Cat. Mgr.'},
+  {k:'Spalte8',                     h:'Kreditor'},
+  {k:'Spalte9',                     h:'Kreditorenname'},
+  {k:'Letzter_Einkaufspreis_Wert',  h:'Letzt. EK'},
+  {k:'_bemerkung',                  h:'Bemerkung'}
 ];
 
 var WG = {
@@ -405,11 +408,12 @@ function loadCSV() {
     });
 }
 
-var msState = {marke: new Set(), saison: new Set(), kreditor: new Set()};
+var msState = {marke: new Set(), saison: new Set(), catman: new Set(), kreditor: new Set()};
 var msCfg = [
-  {id:'msM',    col:'Marke',          key:'marke'},
-  {id:'msS',    col:'Saison',         key:'saison'},
-  {id:'msKred', col:'Kreditorenname', key:'kreditor'}
+  {id:'msM',    col:'Marke',    key:'marke'},
+  {id:'msS',    col:'Saison',   key:'saison'},
+  {id:'msCat',  col:'Spalte7',  key:'catman'},
+  {id:'msKred', col:'Spalte9',  key:'kreditor'}
 ];
 
 function process() {
@@ -558,9 +562,10 @@ function doFilter() {
     if (fm && String(r['Modellnummer'] || '').toLowerCase().indexOf(fm) === -1) continue;
     if (fe && String(r['EAN'] || '').toLowerCase().indexOf(fe) === -1) continue;
     if (fk && String(r['Kred_Artikelnummer'] || '').toLowerCase().indexOf(fk) === -1) continue;
-    if (msState.marke.size && !msState.marke.has(r['Marke'])) continue;
-    if (msState.saison.size && !msState.saison.has(r['Saison'])) continue;
-    if (msState.kreditor.size && !msState.kreditor.has(r['Kreditorenname'])) continue;
+    if (msState.marke.size    && !msState.marke.has(r['Marke']))   continue;
+    if (msState.saison.size   && !msState.saison.has(r['Saison'])) continue;
+    if (msState.catman.size   && !msState.catman.has(r['Spalte7'])) continue;
+    if (msState.kreditor.size && !msState.kreditor.has(r['Spalte9'])) continue;
     if (gl) {
       var s = '';
       var keys = Object.keys(r);
@@ -720,8 +725,9 @@ function getExport() {
         'Bestellmenge':        menge,
         'Manuell':             r._man ? 'Ja' : 'Nein',
         'Letzter EK Preis':    r['Letzter_Einkaufspreis_Wert'] || '',
-        'Kreditor':            r['Kreditorenname'] || '',
-        'Cluster':             r._cluster,
+        'Category Manager':    r['Spalte7'] || '',
+        'Kreditor Nr.':        r['Spalte8'] || '',
+        'Kreditorenname':      r['Spalte9'] || '',
         'Bemerkung':           r._bemerkung || ''
       });
     }
