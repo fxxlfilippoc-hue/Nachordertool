@@ -430,7 +430,9 @@ function loadCSV() {
         delimitersToGuess: [',', ';', '\t'],
         complete: function(res) {
           raw = res.data;
-          if (raw.length > 0) detectCols(raw[0]);
+          if (raw.length > 0) {
+            try { detectCols(raw[0]); } catch(e) { alert('detectCols Fehler: ' + e.message); }
+          }
           var now = new Date();
           var ts = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
           try { localStorage.setItem('no_ts', ts); } catch(e) {}
@@ -463,23 +465,36 @@ var msCfg = [
 ];
 
 function process() {
+  document.getElementById('ltxt').textContent = 'Berechnung 0%...';
   calc = [];
-  var chunkSize = 500;
   var idx = 0;
-  function nextChunk() {
-    var end = Math.min(idx + chunkSize, raw.length);
-    for (var i = idx; i < end; i++) {
-      calc.push(calcRow(raw[i]));
-    }
-    idx = end;
-    if (idx < raw.length) {
-      document.getElementById('ltxt').textContent = 'Berechnung... ' + Math.round(idx / raw.length * 100) + '%';
-      setTimeout(nextChunk, 0);
-    } else {
-      finishProcess();
+  var total = raw.length;
+  var chunk = 200;
+
+  function step() {
+    try {
+      var end = Math.min(idx + chunk, total);
+      for (var i = idx; i < end; i++) {
+        try {
+          calc.push(calcRow(raw[i]));
+        } catch(rowErr) {
+          // skip bad row
+        }
+      }
+      idx = end;
+      var pct = Math.round(idx / total * 100);
+      document.getElementById('ltxt').textContent = 'Berechnung ' + pct + '%...';
+      if (idx < total) {
+        setTimeout(step, 0);
+      } else {
+        finishProcess();
+      }
+    } catch(e) {
+      hideLoad();
+      alert('Fehler bei Berechnung: ' + e.message);
     }
   }
-  nextChunk();
+  setTimeout(step, 0);
 }
 
 function finishProcess() {
