@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Nachorder Tool</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f0f2f5;--sur:#fff;--sur2:#e8eaed;--brd:#d0d4db;--acc:#2563eb;--acc2:#7c3aed;--txt:#1e2330;--txt2:#6b7280;--red:#dc2626;--yel:#d97706;--grn:#16a34a;}
@@ -208,68 +207,18 @@ tbody td{padding:6px 10px;white-space:nowrap;}
 var PW = 'Einkauf2026Dashboard';
 var CSV_URL = './import_fertig.csv';
 
-var raw = [];
-var calc = [];
-var filtered = [];
-var sortK = null;
-var sortD = 1;
-var onlyOrd = false;
-var onlyRed = false;
+var raw = [], calc = [], filtered = [];
+var sortK = null, sortD = 1;
+var onlyOrd = false, onlyRed = false;
 var actCluster = 'Alle';
 var ftimer = null;
 var overrides = {};
 
-// real column keys detected from CSV at load time
-var COL_A30     = '';
-var COL_A7      = '';
-var COL_BESTAND = '';
-var COL_OFFEN   = '';
-var COL_EK      = '';
-var COL_BEM     = '';
-var COL_WG      = '';
-var COL_ARTNR   = '';
-var COL_BEZ     = '';
-var COL_EAN     = '';
-var COL_KRED    = '';
-var COL_MARKE   = '';
-var COL_MODELL  = '';
-var COL_SAISON  = '';
-var COL_FARBE   = '';
-var COL_SP8     = '';
-var COL_SP9     = '';
-
-function normKey(s) {
-  return s.toLowerCase()
-    .replace(/\uFEFF/g, '')
-    .replace(/\s+/g, '_')
-    .trim();
-}
-
-function detectCols(row) {
-  var keys = Object.keys(row);
-  for (var i = 0; i < keys.length; i++) {
-    var k = keys[i];
-    var n = normKey(k);
-    if (n === 'absatz_30t')                        COL_A30     = k;
-    else if (n === 'absatz_7t')                    COL_A7      = k;
-    else if (n.indexOf('bestand') !== -1)          COL_BESTAND = k;
-    else if (n === 'offen')                        COL_OFFEN   = k;
-    else if (n.indexOf('letzter') !== -1 && n.indexOf('wert') !== -1) COL_EK = k;
-    else if (n === 'bemerkung')                    COL_BEM     = k;
-    else if (n === 'warengruppe')                  COL_WG      = k;
-    else if (n === 'artikelnummer')                COL_ARTNR   = k;
-    else if (n === 'bezeichnung')                  COL_BEZ     = k;
-    else if (n === 'ean')                          COL_EAN     = k;
-    else if (n === 'kred_artikelnummer')           COL_KRED    = k;
-    else if (n === 'marke')                        COL_MARKE   = k;
-    else if (n === 'modellnummer')                 COL_MODELL  = k;
-    else if (n === 'saison')                       COL_SAISON  = k;
-    else if (n === 'farbe')                        COL_FARBE   = k;
-    else if (n === 'spalte7')                      COL_SP7     = k;
-    else if (n === 'spalte8')                      COL_SP8     = k;
-    else if (n === 'spalte9')                      COL_SP9     = k;
-  }
-}
+// These will be detected from the actual CSV headers
+var C = {
+  artnr:'', bez:'', ean:'', kred:'', wg:'', marke:'', modell:'', saison:'', farbe:'',
+  a30:'', a7:'', bestand:'', offen:'', ek:'', bem:'', sp7:'', sp8:'', sp9:''
+};
 
 var COLS = [
   {k:'_ampel',  h:'Status'},
@@ -289,7 +238,7 @@ var COLS = [
   {k:'_trend',  h:'Trend'},
   {k:'_best',   h:'Bestellvorschlag'},
   {k:'_man',    h:'Meine Menge'},
-  {k:'_catman', h:'Cat. Mgr.'},
+  {k:'_sp7',    h:'Cat. Mgr.'},
   {k:'_sp8',    h:'Kreditor Nr.'},
   {k:'_sp9',    h:'Kreditorenname'},
   {k:'_ek',     h:'Letzt. EK'},
@@ -363,17 +312,44 @@ function nv(v) {
   return isNaN(x) ? 0 : x;
 }
 
+// Detect actual column names from first CSV row
+function detectCols(headers) {
+  for (var i = 0; i < headers.length; i++) {
+    var h = headers[i].replace(/^\uFEFF/, '').trim();
+    var hl = h.toLowerCase();
+    if (h === 'Artikelnummer')           C.artnr   = h;
+    if (h === 'Bezeichnung')             C.bez     = h;
+    if (h === 'EAN')                     C.ean     = h;
+    if (h === 'Kred_Artikelnummer')      C.kred    = h;
+    if (h === 'Warengruppe')             C.wg      = h;
+    if (h === 'Marke')                   C.marke   = h;
+    if (h === 'Modellnummer')            C.modell  = h;
+    if (h === 'Saison')                  C.saison  = h;
+    if (h === 'Farbe')                   C.farbe   = h;
+    if (h === 'Absatz_30T')              C.a30     = h;
+    if (h === 'Absatz_7T')              C.a7      = h;
+    if (h === 'Offen')                   C.offen   = h;
+    if (h === 'BEMERKUNG')               C.bem     = h;
+    if (h === 'Spalte7')                 C.sp7     = h;
+    if (h === 'Spalte8')                 C.sp8     = h;
+    if (h === 'Spalte9')                 C.sp9     = h;
+    // umlaut-safe: match by contains
+    if (hl.indexOf('bestand') !== -1 && hl.indexOf('verf') !== -1) C.bestand = h;
+    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) C.ek      = h;
+  }
+}
+
 function calcRow(row) {
   var lief  = parseInt(document.getElementById('sLief').value);
   var reich = parseInt(document.getElementById('sReich').value);
   var rund  = parseInt(document.getElementById('sRund').value);
-  var a30   = nv(row[COL_A30]);
-  var a7    = nv(row[COL_A7]);
+  var a30   = nv(row[C.a30]);
+  var a7    = nv(row[C.a7]);
   var std   = a30 / 4;
   var trend = a7 > std;
   var wabs  = trend ? (a7 * 0.7 + std * 0.3) : std;
-  var bestand = nv(row[COL_BESTAND]);
-  var offen   = nv(row[COL_OFFEN]);
+  var bestand = nv(row[C.bestand]);
+  var offen   = nv(row[C.offen]);
   var verf  = bestand + offen;
   var bed   = wabs * (reich + lief);
   var best  = bed - verf;
@@ -382,35 +358,34 @@ function calcRow(row) {
   else best = Math.round(best);
   var rw    = wabs > 0 ? verf / wabs : 99;
   var ampel = rw < 1 ? 'red' : (rw < 3 ? 'yellow' : 'green');
-  var wgKey = (row[COL_WG] || '').trim().toUpperCase();
-  var cluster = WG[wgKey] || 'Sonstiges';
-  var r = {};
-  r._artnr   = row[COL_ARTNR]  || '';
-  r._bez     = row[COL_BEZ]    || '';
-  r._ean     = row[COL_EAN]    || '';
-  r._farbe   = row[COL_FARBE]  || '';
-  r._kred    = row[COL_KRED]   || '';
-  r._wg      = row[COL_WG]     || '';
-  r._marke   = row[COL_MARKE]  || '';
-  r._modell  = row[COL_MODELL] || '';
-  r._saison  = row[COL_SAISON] || '';
-  r._catman  = row[COL_SP7]    || '';
-  r._sp8     = row[COL_SP8]    || '';
-  r._sp9     = row[COL_SP9]    || '';
-  r._ek      = row[COL_EK]     || '';
-  r._bem     = row[COL_BEM]    || '';
-  r._bestand = bestand;
-  r._offen   = offen;
-  r._a30     = a30;
-  r._a7      = a7;
-  r._verf    = verf;
-  r._wabs    = wabs;
-  r._trend   = trend;
-  r._best    = best;
-  r._man     = overrides[row[COL_ARTNR]] || '';
-  r._ampel   = ampel;
-  r._cluster = cluster;
-  return r;
+  var wgKey = (row[C.wg] || '').trim().toUpperCase();
+  return {
+    _artnr:   row[C.artnr]  || '',
+    _bez:     row[C.bez]    || '',
+    _ean:     row[C.ean]    || '',
+    _kred:    row[C.kred]   || '',
+    _wg:      row[C.wg]     || '',
+    _marke:   row[C.marke]  || '',
+    _modell:  row[C.modell] || '',
+    _saison:  row[C.saison] || '',
+    _farbe:   row[C.farbe]  || '',
+    _sp7:     row[C.sp7]    || '',
+    _sp8:     row[C.sp8]    || '',
+    _sp9:     row[C.sp9]    || '',
+    _ek:      row[C.ek]     || '',
+    _bem:     row[C.bem]    || '',
+    _bestand: bestand,
+    _offen:   offen,
+    _a30:     a30,
+    _a7:      a7,
+    _verf:    verf,
+    _wabs:    wabs,
+    _trend:   trend,
+    _best:    best,
+    _man:     overrides[row[C.artnr]] || '',
+    _ampel:   ampel,
+    _cluster: WG[wgKey] || 'Sonstiges'
+  };
 }
 
 function loadCSV() {
@@ -423,81 +398,65 @@ function loadCSV() {
       return res.text();
     })
     .then(function(text) {
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: false,
-        delimitersToGuess: [',', ';', '\t'],
-        complete: function(res) {
-          raw = res.data;
-          if (raw.length > 0) {
-            try { detectCols(raw[0]); } catch(e) { alert('detectCols Fehler: ' + e.message); }
-          }
-          var now = new Date();
-          var ts = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
-          try { localStorage.setItem('no_ts', ts); } catch(e) {}
-          document.getElementById('lupd').innerHTML = 'Letzte Aktualisierung: <strong>' + ts + '</strong>';
-          document.getElementById('finfo').textContent = raw.length.toLocaleString('de-DE') + ' Zeilen';
-          if (btn) btn.disabled = false;
-          showLoad('Berechnung...');
-          setTimeout(function() { process(); }, 50);
-        },
-        error: function(err) {
-          hideLoad();
-          if (btn) btn.disabled = false;
-          alert('Parse-Fehler: ' + err.message);
+      // detect separator
+      var firstLine = text.split('\n')[0];
+      var sep = firstLine.indexOf(';') > firstLine.indexOf(',') ? ';' : ',';
+      // parse headers from first line
+      var lines = text.split('\n');
+      var headers = lines[0].split(sep).map(function(h){ return h.replace(/^"|"$/g,'').replace(/^\uFEFF/,'').trim(); });
+      detectCols(headers);
+      // parse rows
+      raw = [];
+      for (var i = 1; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line) continue;
+        var vals = splitCSVLine(line, sep);
+        var row = {};
+        for (var j = 0; j < headers.length; j++) {
+          row[headers[j]] = vals[j] !== undefined ? vals[j].replace(/^"|"$/g,'') : '';
         }
-      });
+        raw.push(row);
+      }
+      var now = new Date();
+      var ts = now.toLocaleDateString('de-DE') + ' ' + now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+      try { localStorage.setItem('no_ts', ts); } catch(e) {}
+      document.getElementById('lupd').innerHTML = 'Letzte Aktualisierung: <strong>' + ts + '</strong>';
+      document.getElementById('finfo').textContent = raw.length.toLocaleString('de-DE') + ' Zeilen';
+      if (btn) btn.disabled = false;
+      showLoad('Berechnung...');
+      setTimeout(function() { process(); }, 50);
     })
     .catch(function(err) {
       hideLoad();
       if (btn) btn.disabled = false;
       document.getElementById('finfo').textContent = 'Fehler: ' + err.message;
+      alert('Ladefehler: ' + err.message);
     });
+}
+
+function splitCSVLine(line, sep) {
+  var result = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === sep && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
 }
 
 var msState = {marke: new Set(), saison: new Set(), catman: new Set(), kreditor: new Set()};
 var msCfg = [
   {id:'msM',    field:'_marke',  key:'marke'},
   {id:'msS',    field:'_saison', key:'saison'},
-  {id:'msCat',  field:'_catman', key:'catman'},
-  {id:'msKred', field:'_sp9',    key:'kreditor'}
+  {id:'msCat',  field:'_sp7',   key:'catman'},
+  {id:'msKred', field:'_sp9',   key:'kreditor'}
 ];
 
 function process() {
-  document.getElementById('ltxt').textContent = 'Berechnung 0%...';
   calc = [];
-  var idx = 0;
-  var total = raw.length;
-  var chunk = 200;
-
-  function step() {
-    try {
-      var end = Math.min(idx + chunk, total);
-      for (var i = idx; i < end; i++) {
-        try {
-          calc.push(calcRow(raw[i]));
-        } catch(rowErr) {
-          // skip bad row
-        }
-      }
-      idx = end;
-      var pct = Math.round(idx / total * 100);
-      document.getElementById('ltxt').textContent = 'Berechnung ' + pct + '%...';
-      if (idx < total) {
-        setTimeout(step, 0);
-      } else {
-        finishProcess();
-      }
-    } catch(e) {
-      hideLoad();
-      alert('Fehler bei Berechnung: ' + e.message);
-    }
-  }
-  setTimeout(step, 0);
-}
-
-function finishProcess() {
+  for (var i = 0; i < raw.length; i++) calc.push(calcRow(raw[i]));
   for (var mi = 0; mi < msCfg.length; mi++) {
     var c = msCfg[mi];
     var vals = [], seen = {};
@@ -523,6 +482,7 @@ function recalc() {
   for (var i = 0; i < raw.length; i++) calc.push(calcRow(raw[i]));
   applyF();
 }
+
 function buildMs(cfg, vals) {
   var wrap = document.getElementById(cfg.id);
   wrap.innerHTML = '';
@@ -535,12 +495,9 @@ function buildMs(cfg, vals) {
   btn.appendChild(document.createTextNode(' v'));
   btn.onclick = function(e) { e.stopPropagation(); togDd(cfg.id + 'd'); };
   var dd = document.createElement('div');
-  dd.className = 'msd';
-  dd.id = cfg.id + 'd';
-  var sh = document.createElement('div');
-  sh.className = 'mss';
-  var si = document.createElement('input');
-  si.type = 'text'; si.placeholder = 'Suchen...';
+  dd.className = 'msd'; dd.id = cfg.id + 'd';
+  var sh = document.createElement('div'); sh.className = 'mss';
+  var si = document.createElement('input'); si.type = 'text'; si.placeholder = 'Suchen...';
   si.oninput = function(e) { e.stopPropagation(); filtMs(dd, si.value); };
   si.onclick = function(e) { e.stopPropagation(); };
   sh.appendChild(si); dd.appendChild(sh);
@@ -590,13 +547,10 @@ document.addEventListener('click', function() {
 function buildClusters() {
   var seen = {}, list = ['Alle'];
   for (var i = 0; i < calc.length; i++) {
-    var c = calc[i]._cluster;
-    if (c && !seen[c]) { seen[c] = true; list.push(c); }
+    var cl = calc[i]._cluster;
+    if (cl && !seen[cl]) { seen[cl] = true; list.push(cl); }
   }
-  list.sort(function(a, b) {
-    if (a === 'Alle') return -1; if (b === 'Alle') return 1;
-    return a.localeCompare(b);
-  });
+  list.sort(function(a, b) { if (a === 'Alle') return -1; if (b === 'Alle') return 1; return a.localeCompare(b); });
   var wrap = document.getElementById('ctabs'); wrap.innerHTML = '';
   for (var j = 0; j < list.length; j++) {
     var cl = list[j];
@@ -633,10 +587,10 @@ function doFilter() {
     if (fk && r._kred.toLowerCase().indexOf(fk) === -1) continue;
     if (msState.marke.size    && !msState.marke.has(r._marke))   continue;
     if (msState.saison.size   && !msState.saison.has(r._saison))  continue;
-    if (msState.catman.size   && !msState.catman.has(r._catman))  continue;
-    if (msState.kreditor.size && !msState.kreditor.has(r._sp9))   continue;
+    if (msState.catman.size   && !msState.catman.has(r._sp7))    continue;
+    if (msState.kreditor.size && !msState.kreditor.has(r._sp9))  continue;
     if (gl) {
-      var s = r._artnr+' '+r._bez+' '+r._marke+' '+r._modell+' '+r._saison+' '+r._wg+' '+r._catman+' '+r._sp9+' '+r._bem;
+      var s = r._artnr+' '+r._bez+' '+r._marke+' '+r._modell+' '+r._saison+' '+r._wg+' '+r._sp7+' '+r._sp9+' '+r._bem+' '+r._farbe;
       if (s.toLowerCase().indexOf(gl) === -1) continue;
     }
     filtered.push(r);
@@ -663,13 +617,10 @@ function renderTable() {
     var th = document.createElement('th');
     th.textContent = col.h;
     if (sortK === col.k) th.className = sortD === 1 ? 'asc' : 'desc';
-    (function(k) {
-      th.onclick = function() { if (sortK === k) sortD *= -1; else { sortK = k; sortD = 1; } applyF(); };
-    })(col.k);
+    (function(k) { th.onclick = function() { if (sortK === k) sortD *= -1; else { sortK = k; sortD = 1; } applyF(); }; })(col.k);
     htr.appendChild(th);
   }
   thead.appendChild(htr);
-
   var slice = filtered.slice(0, 500);
   var frag = document.createDocumentFragment();
   for (var ri = 0; ri < slice.length; ri++) {
@@ -765,12 +716,13 @@ function getExport() {
         'Artikelnummer':       r._artnr,
         'Modellnummer':        r._modell,
         'Kred. Artikelnummer': r._kred,
+        'Farbe':               r._farbe,
         'Bezeichnung':         r._bez,
         'EAN':                 r._ean,
         'Bestellmenge':        m,
         'Manuell':             r._man ? 'Ja' : 'Nein',
         'Letzter EK Preis':    r._ek,
-        'Category Manager':    r._catman,
+        'Category Manager':    r._sp7,
         'Kreditor Nr.':        r._sp8,
         'Kreditorenname':      r._sp9,
         'Cluster':             r._cluster,
