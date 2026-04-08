@@ -438,7 +438,38 @@ function loadCSV() {
           document.getElementById('finfo').textContent = raw.length.toLocaleString('de-DE') + ' Zeilen';
           if (btn) btn.disabled = false;
           showLoad('Berechnung...');
-          setTimeout(function() { process(); hideLoad(); }, 50);
+          setTimeout(function() {
+            calc = [];
+            var chunkSize = 1000;
+            var idx = 0;
+            function processChunk() {
+              var end = Math.min(idx + chunkSize, raw.length);
+              for (var i = idx; i < end; i++) calc.push(calcRow(raw[i]));
+              idx = end;
+              if (idx < raw.length) {
+                showLoad('Berechnung... ' + Math.round(idx/raw.length*100) + '%');
+                setTimeout(processChunk, 0);
+              } else {
+                for (var mi = 0; mi < msCfg.length; mi++) {
+                  var c = msCfg[mi];
+                  var vals = [], seen = {};
+                  for (var ri = 0; ri < calc.length; ri++) {
+                    var v = calc[ri][c.field] || '';
+                    if (v && !seen[v]) { seen[v] = true; vals.push(v); }
+                  }
+                  vals.sort();
+                  msState[c.key] = new Set();
+                  buildMs(c, vals);
+                }
+                buildClusters();
+                applyF();
+                document.getElementById('empty').style.display = 'none';
+                document.getElementById('tbl').style.display = '';
+                hideLoad();
+              }
+            }
+            processChunk();
+          }, 50);
         },
         error: function(err) {
           hideLoad();
