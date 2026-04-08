@@ -234,7 +234,7 @@ var COL_KRED    = '';
 var COL_MARKE   = '';
 var COL_MODELL  = '';
 var COL_SAISON  = '';
-var COL_SP7     = '';
+var COL_FARBE   = '';
 var COL_SP8     = '';
 var COL_SP9     = '';
 
@@ -264,6 +264,7 @@ function detectCols(row) {
     else if (n === 'marke')                        COL_MARKE   = k;
     else if (n === 'modellnummer')                 COL_MODELL  = k;
     else if (n === 'saison')                       COL_SAISON  = k;
+    else if (n === 'farbe')                        COL_FARBE   = k;
     else if (n === 'spalte7')                      COL_SP7     = k;
     else if (n === 'spalte8')                      COL_SP8     = k;
     else if (n === 'spalte9')                      COL_SP9     = k;
@@ -275,6 +276,7 @@ var COLS = [
   {k:'_artnr',  h:'Art.-Nr.'},
   {k:'_modell', h:'Modell-Nr.'},
   {k:'_kred',   h:'Kred. Art.-Nr.'},
+  {k:'_farbe',  h:'Farbe'},
   {k:'_bez',    h:'Bezeichnung'},
   {k:'_marke',  h:'Marke'},
   {k:'_wg',     h:'WG-Code'},
@@ -386,6 +388,7 @@ function calcRow(row) {
   r._artnr   = row[COL_ARTNR]  || '';
   r._bez     = row[COL_BEZ]    || '';
   r._ean     = row[COL_EAN]    || '';
+  r._farbe   = row[COL_FARBE]  || '';
   r._kred    = row[COL_KRED]   || '';
   r._wg      = row[COL_WG]     || '';
   r._marke   = row[COL_MARKE]  || '';
