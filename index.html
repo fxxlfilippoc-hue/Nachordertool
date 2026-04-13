@@ -88,13 +88,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 @keyframes sp{to{transform:rotate(360deg);}}
 #empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--txt2);}
 .nodata{text-align:center;color:var(--txt2);padding:40px;}
-#colcfg-overlay{display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.25);}
-#colcfg-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:20px 24px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.18);width:340px;max-height:80vh;overflow-y:auto;}
-#colcfg-panel h3{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
-.colcfg-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--sur2);font-size:13px;cursor:pointer;user-select:none;}
-.colcfg-item:last-child{border-bottom:none;}
-.colcfg-item input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px;cursor:pointer;flex-shrink:0;}
-.colcfg-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:#b0b8c8;border-radius:3px;}
@@ -115,18 +109,6 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 <div id="load"><div class="hourglass">&#8987;</div><p id="ltxt" style="font-size:15px;font-weight:600;color:var(--txt);">Wird geladen...</p></div>
 <div id="spin"><div class="mspin"></div> Wird gefiltert...</div>
 
-<div id="colcfg-overlay" onclick="closeColCfg()"></div>
-<div id="colcfg-panel">
-  <h3>Spalten anpassen <button onclick="closeColCfg()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--txt2);">&#10005;</button></h3>
-  <div id="colcfg-list"></div>
-  <div class="colcfg-actions">
-    <button class="btn sec" onclick="colSelectAll()">Alle an</button>
-    <button class="btn sec" onclick="colSelectNone()">Alle aus</button>
-    <button class="btn sec" onclick="colReset()">Reset Sichtbarkeit</button>
-    <button class="btn sec" onclick="colWidthReset()">Reset Breiten</button>
-  </div>
-</div>
-
 <div id="app">
 <div id="hdr">
   <svg height="36" viewBox="0 0 420 75" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
@@ -138,7 +120,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <span style="font-size:13px;font-weight:600;color:var(--txt2);">Nachorder Tool</span>
   <div class="sep"></div>
   <button class="btn sec" id="reloadBtn" onclick="loadCSV()">&#8635; Daten aktualisieren</button>
-  <button class="btn sec" onclick="openColCfg()" style="margin-left:4px;">&#9881; Spalten</button>
+  <button class="btn sec" onclick="colWidthReset()" style="margin-left:4px;">&#8596; Breiten reset</button>
   <div id="finfo" style="color:var(--txt2);font-size:12px;margin-left:8px;"></div>
   <div id="lupd" style="margin-left:auto;color:var(--txt2);font-size:12px;"></div>
 </div>
@@ -230,7 +212,6 @@ var onlyOrd = false, onlyRed = false;
 var actCluster = 'Alle';
 var ftimer = null;
 var overrides = {};
-var colVisible = {};
 var colWidths = {};
 
 var C = {
@@ -463,7 +444,7 @@ function detectCols(headers) {
     if (h === 'Spalte8')            C.sp8     = h;
     if (h === 'Spalte9')            C.sp9     = h;
     if (h === 'Herstellergroesse' || h === 'Herstellergr\u00f6\u00dfe') C.groesse = h;
-    if (hl.indexOf('bestand') !== -1 && hl.indexOf('verf') !== -1) C.bestand = h;
+    if (hl.indexOf('bestand') !== -1) C.bestand = h;
     if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) C.ek = h;
   }
 }
@@ -937,7 +918,6 @@ function resetAll() {
   document.getElementById('bRed').textContent = 'Aus'; document.getElementById('bRed').classList.remove('on');
 }
 
-loadColPrefs();
 loadColWidths();
 loadS();
 try { var ts = localStorage.getItem('no_ts'); if (ts) document.getElementById('lupd').innerHTML = 'Letzte Aktualisierung: <strong>' + ts + '</strong>'; } catch(e) {}
