@@ -216,7 +216,7 @@ var overrides = {};
 
 // These will be detected from the actual CSV headers
 var C = {
-  artnr:'', bez:'', ean:'', kred:'', wg:'', marke:'', modell:'', saison:'', farbe:'',
+  artnr:'', bez:'', ean:'', kred:'', wg:'', marke:'', modell:'', saison:'', farbe:'', groesse:'',
   a30:'', a7:'', bestand:'', offen:'', ek:'', bem:'', sp7:'', sp8:'', sp9:''
 };
 
@@ -225,7 +225,9 @@ var COLS = [
   {k:'_artnr',  h:'Art.-Nr.'},
   {k:'_modell', h:'Modell-Nr.'},
   {k:'_kred',   h:'Kred. Art.-Nr.'},
+  {k:'_ean',    h:'EAN'},
   {k:'_farbe',  h:'Farbe'},
+  {k:'_groesse',h:'Groesse'},
   {k:'_bez',    h:'Bezeichnung'},
   {k:'_marke',  h:'Marke'},
   {k:'_wg',     h:'WG-Code'},
@@ -326,6 +328,7 @@ function detectCols(headers) {
     if (h === 'Modellnummer')            C.modell  = h;
     if (h === 'Saison')                  C.saison  = h;
     if (h === 'Farbe')                   C.farbe   = h;
+    if (h === 'Herstellergröße' || h === 'Herstellergroesse' || h === 'Herstellergrosse') C.groesse = h;
     if (h === 'Absatz_30T')              C.a30     = h;
     if (h === 'Absatz_7T')              C.a7      = h;
     if (h === 'Offen')                   C.offen   = h;
@@ -369,6 +372,7 @@ function calcRow(row) {
     _modell:  row[C.modell] || '',
     _saison:  row[C.saison] || '',
     _farbe:   row[C.farbe]  || '',
+    _groesse: row[C.groesse]|| '',
     _sp7:     row[C.sp7]    || '',
     _sp8:     row[C.sp8]    || '',
     _sp9:     row[C.sp9]    || '',
@@ -717,6 +721,7 @@ function getExport() {
         'Modellnummer':        r._modell,
         'Kred. Artikelnummer': r._kred,
         'Farbe':               r._farbe,
+        'Groesse':             r._groesse,
         'Bezeichnung':         r._bez,
         'EAN':                 r._ean,
         'Bestellmenge':        m,
