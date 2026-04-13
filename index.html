@@ -62,19 +62,16 @@ select:focus,input:focus{border-color:var(--acc);}
 .stl{color:var(--txt2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
 .stv{font-size:15px;font-weight:700;color:var(--acc);}
 #twrap{flex:1;overflow:auto;}
-table{width:100%;border-collapse:collapse;}
-thead th{position:sticky;top:0;background:var(--sur2);border-bottom:2px solid var(--brd);padding:5px 7px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap;z-index:10;font-size:11px;color:var(--txt2);}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+thead th{position:sticky;top:0;background:var(--sur2);border-bottom:2px solid var(--brd);padding:5px 7px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap;z-index:10;font-size:11px;color:var(--txt2);overflow:hidden;position:relative;}
 thead th:hover{color:var(--acc);}
 thead th.asc::after{content:' \2191';color:var(--acc);}
 thead th.desc::after{content:' \2193';color:var(--acc);}
 tbody tr{border-bottom:1px solid var(--brd);}
 tbody tr:hover{background:var(--sur2);}
-tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;}
-.dot{display:inline-block;width:10px;height:10px;border-radius:50%;}
-.dot.red{background:var(--red);box-shadow:0 0 6px rgba(220,38,38,.4);}
-.dot.yellow{background:var(--yel);box-shadow:0 0 6px rgba(217,119,6,.4);}
-.dot.green{background:var(--grn);box-shadow:0 0 6px rgba(22,163,74,.4);}
-.ocell{font-weight:700;color:var(--acc);}
+tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-overflow:ellipsis;}
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:11;}
+.col-resizer:hover,.col-resizer.active{background:var(--acc);opacity:.5;}
 #spin{display:none;position:fixed;bottom:60px;right:20px;background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--txt2);align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:50;}
 #spin.show{display:flex;}
 .mspin{width:14px;height:14px;border:2px solid var(--brd);border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite;}
@@ -91,6 +88,13 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;max-width:180px;overf
 @keyframes sp{to{transform:rotate(360deg);}}
 #empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--txt2);}
 .nodata{text-align:center;color:var(--txt2);padding:40px;}
+#colcfg-overlay{display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.25);}
+#colcfg-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sur);border:1px solid var(--brd);border-radius:10px;padding:20px 24px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.18);width:340px;max-height:80vh;overflow-y:auto;}
+#colcfg-panel h3{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.colcfg-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--sur2);font-size:13px;cursor:pointer;user-select:none;}
+.colcfg-item:last-child{border-bottom:none;}
+.colcfg-item input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px;cursor:pointer;flex-shrink:0;}
+.colcfg-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:#b0b8c8;border-radius:3px;}
@@ -111,6 +115,18 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;max-width:180px;overf
 <div id="load"><div class="hourglass">&#8987;</div><p id="ltxt" style="font-size:15px;font-weight:600;color:var(--txt);">Wird geladen...</p></div>
 <div id="spin"><div class="mspin"></div> Wird gefiltert...</div>
 
+<div id="colcfg-overlay" onclick="closeColCfg()"></div>
+<div id="colcfg-panel">
+  <h3>Spalten anpassen <button onclick="closeColCfg()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--txt2);">&#10005;</button></h3>
+  <div id="colcfg-list"></div>
+  <div class="colcfg-actions">
+    <button class="btn sec" onclick="colSelectAll()">Alle an</button>
+    <button class="btn sec" onclick="colSelectNone()">Alle aus</button>
+    <button class="btn sec" onclick="colReset()">Reset Sichtbarkeit</button>
+    <button class="btn sec" onclick="colWidthReset()">Reset Breiten</button>
+  </div>
+</div>
+
 <div id="app">
 <div id="hdr">
   <svg height="36" viewBox="0 0 420 75" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
@@ -122,6 +138,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;max-width:180px;overf
   <span style="font-size:13px;font-weight:600;color:var(--txt2);">Nachorder Tool</span>
   <div class="sep"></div>
   <button class="btn sec" id="reloadBtn" onclick="loadCSV()">&#8635; Daten aktualisieren</button>
+  <button class="btn sec" onclick="openColCfg()" style="margin-left:4px;">&#9881; Spalten</button>
   <div id="finfo" style="color:var(--txt2);font-size:12px;margin-left:8px;"></div>
   <div id="lupd" style="margin-left:auto;color:var(--txt2);font-size:12px;"></div>
 </div>
@@ -167,13 +184,13 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;max-width:180px;overf
   <div id="lcon">
     <div class="ls">
       <h4>Ampel</h4>
-      <div class="lr"><span class="lk" style="color:var(--red)">Rot</span><span class="ld">Bestand &lt; 1 Woche</span></div>
+      <div class="lr"><span class="lk" style="color:var(--red)">Rot</span><span class="ld">Bestand weniger als 1 Woche</span></div>
       <div class="lr"><span class="lk" style="color:var(--yel)">Gelb</span><span class="ld">Bestand 1-3 Wochen</span></div>
-      <div class="lr"><span class="lk" style="color:var(--grn)">Gruen</span><span class="ld">Bestand &gt; 3 Wochen</span></div>
+      <div class="lr"><span class="lk" style="color:var(--grn)">Gruen</span><span class="ld">Bestand mehr als 3 Wochen</span></div>
     </div>
     <div class="ls">
       <h4>Trend</h4>
-      <div class="lr"><span class="lk">&#128293; Trend</span><span class="ld">VK 7T &gt; 30T/4. Gewichtung: 70% VK7T + 30% Schnitt</span></div>
+      <div class="lr"><span class="lk">&#128293; Trend</span><span class="ld">VK 7T groesser als 30T/4. Gewichtung: 70% VK7T + 30% Schnitt</span></div>
     </div>
     <div class="ls">
       <h4>Formel</h4>
@@ -213,38 +230,40 @@ var onlyOrd = false, onlyRed = false;
 var actCluster = 'Alle';
 var ftimer = null;
 var overrides = {};
+var colVisible = {};
+var colWidths = {};
 
-// These will be detected from the actual CSV headers
 var C = {
-  artnr:'', bez:'', ean:'', kred:'', wg:'', marke:'', modell:'', saison:'', farbe:'', groesse:'',
-  a30:'', a7:'', bestand:'', offen:'', ek:'', bem:'', sp7:'', sp8:'', sp9:''
+  artnr:'', bez:'', ean:'', kred:'', wg:'', marke:'', modell:'', saison:'',
+  farbe:'', groesse:'', a30:'', a7:'', bestand:'', offen:'', ek:'', bem:'',
+  sp7:'', sp8:'', sp9:''
 };
 
-var COLS = [
-  {k:'_ampel',  h:'Status'},
-  {k:'_artnr',  h:'Art.-Nr.'},
-  {k:'_modell', h:'Modell-Nr.'},
-  {k:'_kred',   h:'Kred. Art.-Nr.'},
-  {k:'_ean',    h:'EAN'},
-  {k:'_farbe',  h:'Farbe'},
-  {k:'_groesse',h:'Groesse'},
-  {k:'_bez',    h:'Bezeichnung'},
-  {k:'_marke',  h:'Marke'},
-  {k:'_wg',     h:'WG-Code'},
-  {k:'_saison', h:'Saison'},
-  {k:'_bestand',h:'Bestand'},
-  {k:'_offen',  h:'Offen'},
-  {k:'_verf',   h:'Verfuegbar'},
-  {k:'_a7',     h:'VK Menge 7T'},
-  {k:'_a30',    h:'VK Menge 30T'},
-  {k:'_trend',  h:'Trend'},
-  {k:'_best',   h:'Bestellvorschlag'},
-  {k:'_man',    h:'Meine Menge'},
-  {k:'_sp7',    h:'Cat. Mgr.'},
-  {k:'_sp8',    h:'Kreditor Nr.'},
-  {k:'_sp9',    h:'Kreditorenname'},
-  {k:'_ek',     h:'Letzt. EK'},
-  {k:'_bem',    h:'Bemerkung'}
+var ALL_COLS = [
+  {k:'_ampel',   h:'Status',           def:true},
+  {k:'_artnr',   h:'Art.-Nr.',          def:true},
+  {k:'_modell',  h:'Modell-Nr.',        def:true},
+  {k:'_kred',    h:'Kred. Art.-Nr.',    def:true},
+  {k:'_ean',     h:'EAN',               def:true},
+  {k:'_farbe',   h:'Farbe',             def:true},
+  {k:'_groesse', h:'Groesse',           def:true},
+  {k:'_bez',     h:'Bezeichnung',       def:true},
+  {k:'_marke',   h:'Marke',             def:true},
+  {k:'_wg',      h:'WG-Code',           def:true},
+  {k:'_saison',  h:'Saison',            def:true},
+  {k:'_bestand', h:'Bestand',           def:true},
+  {k:'_offen',   h:'Offen',             def:true},
+  {k:'_verf',    h:'Verfuegbar',        def:true},
+  {k:'_a7',      h:'VK Menge 7T',      def:true},
+  {k:'_a30',     h:'VK Menge 30T',     def:true},
+  {k:'_trend',   h:'Trend',             def:true},
+  {k:'_best',    h:'Bestellvorschlag',  def:true},
+  {k:'_man',     h:'Meine Menge',       def:true},
+  {k:'_sp7',     h:'Cat. Mgr.',         def:true},
+  {k:'_sp8',     h:'Kreditor Nr.',      def:true},
+  {k:'_sp9',     h:'Kreditorenname',    def:true},
+  {k:'_ek',      h:'Letzt. EK',         def:true},
+  {k:'_bem',     h:'Bemerkung',         def:true}
 ];
 
 var WG = {
@@ -297,6 +316,115 @@ var WG = {
   R031:'Sonstiges',R032:'Sonstiges',R035:'Sonstiges',R041:'Sonstiges',R999:'Sonstiges'
 };
 
+function loadColPrefs() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('no_cols') || 'null');
+    for (var i = 0; i < ALL_COLS.length; i++) {
+      var k = ALL_COLS[i].k;
+      colVisible[k] = (saved && saved[k] !== undefined) ? saved[k] : ALL_COLS[i].def;
+    }
+  } catch(e) {
+    for (var j = 0; j < ALL_COLS.length; j++) colVisible[ALL_COLS[j].k] = ALL_COLS[j].def;
+  }
+}
+
+function saveColPrefs() {
+  try { localStorage.setItem('no_cols', JSON.stringify(colVisible)); } catch(e) {}
+}
+
+function loadColWidths() {
+  try { colWidths = JSON.parse(localStorage.getItem('no_colw') || '{}'); } catch(e) { colWidths = {}; }
+}
+
+function saveColWidths() {
+  try { localStorage.setItem('no_colw', JSON.stringify(colWidths)); } catch(e) {}
+}
+
+function getActiveCols() {
+  var r = [];
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    if (colVisible[ALL_COLS[i].k]) r.push(ALL_COLS[i]);
+  }
+  return r;
+}
+
+function openColCfg() {
+  var list = document.getElementById('colcfg-list');
+  list.innerHTML = '';
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    var col = ALL_COLS[i];
+    var item = document.createElement('label');
+    item.className = 'colcfg-item';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!colVisible[col.k];
+    (function(k, cb) {
+      cb.onchange = function() { colVisible[k] = cb.checked; saveColPrefs(); renderTable(); };
+    })(col.k, cb);
+    item.appendChild(cb);
+    item.appendChild(document.createTextNode(col.h));
+    list.appendChild(item);
+  }
+  document.getElementById('colcfg-overlay').style.display = 'block';
+  document.getElementById('colcfg-panel').style.display = 'block';
+}
+
+function closeColCfg() {
+  document.getElementById('colcfg-overlay').style.display = 'none';
+  document.getElementById('colcfg-panel').style.display = 'none';
+}
+
+function colSelectAll() {
+  for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = true;
+  saveColPrefs(); openColCfg(); renderTable();
+}
+
+function colSelectNone() {
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    colVisible[ALL_COLS[i].k] = (ALL_COLS[i].k === '_ampel' || ALL_COLS[i].k === '_artnr' || ALL_COLS[i].k === '_best');
+  }
+  saveColPrefs(); openColCfg(); renderTable();
+}
+
+function colReset() {
+  for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = ALL_COLS[i].def;
+  saveColPrefs(); openColCfg(); renderTable();
+}
+
+function colWidthReset() {
+  colWidths = {};
+  saveColWidths();
+  renderTable();
+}
+
+function addResizer(th, colKey) {
+  var resizer = document.createElement('div');
+  resizer.className = 'col-resizer';
+  resizer.onclick = function(e) { e.stopPropagation(); };
+  resizer.onmousedown = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    resizer.classList.add('active');
+    var startX = e.clientX;
+    var startW = th.offsetWidth;
+    function onMove(ev) {
+      var newW = Math.max(30, startW + ev.clientX - startX);
+      th.style.width = newW + 'px';
+      th.style.minWidth = newW + 'px';
+      colWidths[colKey] = newW;
+    }
+    function onUp() {
+      resizer.classList.remove('active');
+      saveColWidths();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+  th.appendChild(resizer);
+}
+
 function checkPw() {
   if (document.getElementById('pwinp').value === PW) {
     document.getElementById('pwscreen').style.display = 'none';
@@ -314,82 +442,92 @@ function nv(v) {
   return isNaN(x) ? 0 : x;
 }
 
-// Detect actual column names from first CSV row
 function detectCols(headers) {
   for (var i = 0; i < headers.length; i++) {
     var h = headers[i].replace(/^\uFEFF/, '').trim();
     var hl = h.toLowerCase();
-    if (h === 'Artikelnummer')           C.artnr   = h;
-    if (h === 'Bezeichnung')             C.bez     = h;
-    if (h === 'EAN')                     C.ean     = h;
-    if (h === 'Kred_Artikelnummer')      C.kred    = h;
-    if (h === 'Warengruppe')             C.wg      = h;
-    if (h === 'Marke')                   C.marke   = h;
-    if (h === 'Modellnummer')            C.modell  = h;
-    if (h === 'Saison')                  C.saison  = h;
-    if (h === 'Farbe')                   C.farbe   = h;
-    if (h === 'Herstellergröße' || h === 'Herstellergroesse' || h === 'Herstellergrosse') C.groesse = h;
-    if (h === 'Absatz_30T')              C.a30     = h;
-    if (h === 'Absatz_7T')              C.a7      = h;
-    if (h === 'Offen')                   C.offen   = h;
-    if (h === 'BEMERKUNG')               C.bem     = h;
-    if (h === 'Spalte7')                 C.sp7     = h;
-    if (h === 'Spalte8')                 C.sp8     = h;
-    if (h === 'Spalte9')                 C.sp9     = h;
-    // umlaut-safe: match by contains
+    if (h === 'Artikelnummer')      C.artnr   = h;
+    if (h === 'Bezeichnung')        C.bez     = h;
+    if (h === 'EAN')                C.ean     = h;
+    if (h === 'Kred_Artikelnummer') C.kred    = h;
+    if (h === 'Warengruppe')        C.wg      = h;
+    if (h === 'Marke')              C.marke   = h;
+    if (h === 'Modellnummer')       C.modell  = h;
+    if (h === 'Saison')             C.saison  = h;
+    if (h === 'Farbe')              C.farbe   = h;
+    if (h === 'Absatz_30T')         C.a30     = h;
+    if (h === 'Absatz_7T')          C.a7      = h;
+    if (h === 'Offen')              C.offen   = h;
+    if (h === 'BEMERKUNG')          C.bem     = h;
+    if (h === 'Spalte7')            C.sp7     = h;
+    if (h === 'Spalte8')            C.sp8     = h;
+    if (h === 'Spalte9')            C.sp9     = h;
+    if (h === 'Herstellergroesse' || h === 'Herstellergr\u00f6\u00dfe') C.groesse = h;
     if (hl.indexOf('bestand') !== -1 && hl.indexOf('verf') !== -1) C.bestand = h;
-    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) C.ek      = h;
+    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) C.ek = h;
   }
 }
 
 function calcRow(row) {
-  var lief  = parseInt(document.getElementById('sLief').value);
-  var reich = parseInt(document.getElementById('sReich').value);
-  var rund  = parseInt(document.getElementById('sRund').value);
-  var a30   = nv(row[C.a30]);
-  var a7    = nv(row[C.a7]);
-  var std   = a30 / 4;
-  var trend = a7 > std;
-  var wabs  = trend ? (a7 * 0.7 + std * 0.3) : std;
+  var lief    = parseInt(document.getElementById('sLief').value);
+  var reich   = parseInt(document.getElementById('sReich').value);
+  var rund    = parseInt(document.getElementById('sRund').value);
+  var a30     = nv(row[C.a30]);
+  var a7      = nv(row[C.a7]);
+  var std     = a30 / 4;
+  var trend   = a7 > std;
+  var wabs    = trend ? (a7 * 0.7 + std * 0.3) : std;
   var bestand = nv(row[C.bestand]);
   var offen   = nv(row[C.offen]);
-  var verf  = bestand + offen;
-  var bed   = wabs * (reich + lief);
-  var best  = bed - verf;
+  var verf    = bestand + offen;
+  var bed     = wabs * (reich + lief);
+  var best    = bed - verf;
   if (best < 0) best = 0;
   if (rund > 0 && best > 0) best = Math.ceil(best / rund) * rund;
   else best = Math.round(best);
   var rw    = wabs > 0 ? verf / wabs : 99;
   var ampel = rw < 1 ? 'red' : (rw < 3 ? 'yellow' : 'green');
   var wgKey = (row[C.wg] || '').trim().toUpperCase();
-  return {
-    _artnr:   row[C.artnr]  || '',
-    _bez:     row[C.bez]    || '',
-    _ean:     row[C.ean]    || '',
-    _kred:    row[C.kred]   || '',
-    _wg:      row[C.wg]     || '',
-    _marke:   row[C.marke]  || '',
-    _modell:  row[C.modell] || '',
-    _saison:  row[C.saison] || '',
-    _farbe:   row[C.farbe]  || '',
-    _groesse: row[C.groesse]|| '',
-    _sp7:     row[C.sp7]    || '',
-    _sp8:     row[C.sp8]    || '',
-    _sp9:     row[C.sp9]    || '',
-    _ek:      row[C.ek]     || '',
-    _bem:     row[C.bem]    || '',
-    _bestand: bestand,
-    _offen:   offen,
-    _a30:     a30,
-    _a7:      a7,
-    _verf:    verf,
-    _wabs:    wabs,
-    _trend:   trend,
-    _best:    best,
-    _man:     overrides[row[C.artnr]] || '',
-    _ampel:   ampel,
-    _cluster: WG[wgKey] || 'Sonstiges'
-  };
+  var r = {};
+  r._artnr   = row[C.artnr]   || '';
+  r._bez     = row[C.bez]     || '';
+  r._ean     = row[C.ean]     || '';
+  r._kred    = row[C.kred]    || '';
+  r._wg      = row[C.wg]      || '';
+  r._marke   = row[C.marke]   || '';
+  r._modell  = row[C.modell]  || '';
+  r._saison  = row[C.saison]  || '';
+  r._farbe   = row[C.farbe]   || '';
+  r._groesse = row[C.groesse] || '';
+  r._sp7     = row[C.sp7]     || '';
+  r._sp8     = row[C.sp8]     || '';
+  r._sp9     = row[C.sp9]     || '';
+  r._ek      = row[C.ek]      || '';
+  r._bem     = row[C.bem]     || '';
+  r._bestand = bestand;
+  r._offen   = offen;
+  r._a30     = a30;
+  r._a7      = a7;
+  r._verf    = verf;
+  r._wabs    = wabs;
+  r._trend   = trend;
+  r._best    = best;
+  r._man     = overrides[row[C.artnr]] || '';
+  r._ampel   = ampel;
+  r._cluster = WG[wgKey] || 'Sonstiges';
+  return r;
+}
+
+function splitCSVLine(line, sep) {
+  var result = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === sep && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
 }
 
 function loadCSV() {
@@ -402,14 +540,13 @@ function loadCSV() {
       return res.text();
     })
     .then(function(text) {
-      // detect separator
       var firstLine = text.split('\n')[0];
       var sep = firstLine.indexOf(';') > firstLine.indexOf(',') ? ';' : ',';
-      // parse headers from first line
       var lines = text.split('\n');
-      var headers = lines[0].split(sep).map(function(h){ return h.replace(/^"|"$/g,'').replace(/^\uFEFF/,'').trim(); });
+      var headers = lines[0].split(sep).map(function(h) {
+        return h.replace(/^"|"$/g,'').replace(/^\uFEFF/,'').trim();
+      });
       detectCols(headers);
-      // parse rows
       raw = [];
       for (var i = 1; i < lines.length; i++) {
         var line = lines[i].trim();
@@ -436,18 +573,6 @@ function loadCSV() {
       document.getElementById('finfo').textContent = 'Fehler: ' + err.message;
       alert('Ladefehler: ' + err.message);
     });
-}
-
-function splitCSVLine(line, sep) {
-  var result = [], cur = '', inQ = false;
-  for (var i = 0; i < line.length; i++) {
-    var ch = line[i];
-    if (ch === '"') { inQ = !inQ; }
-    else if (ch === sep && !inQ) { result.push(cur); cur = ''; }
-    else { cur += ch; }
-  }
-  result.push(cur);
-  return result;
 }
 
 var msState = {marke: new Set(), saison: new Set(), catman: new Set(), kreditor: new Set()};
@@ -493,10 +618,8 @@ function buildMs(cfg, vals) {
   var btn = document.createElement('div');
   btn.className = 'msb';
   var lspan = document.createElement('span');
-  lspan.id = cfg.id + 'l';
-  lspan.textContent = 'Alle';
-  btn.appendChild(lspan);
-  btn.appendChild(document.createTextNode(' v'));
+  lspan.id = cfg.id + 'l'; lspan.textContent = 'Alle';
+  btn.appendChild(lspan); btn.appendChild(document.createTextNode(' v'));
   btn.onclick = function(e) { e.stopPropagation(); togDd(cfg.id + 'd'); };
   var dd = document.createElement('div');
   dd.className = 'msd'; dd.id = cfg.id + 'd';
@@ -525,9 +648,7 @@ function buildMs(cfg, vals) {
 function filtMs(dd, q) {
   var lq = q.toLowerCase();
   var items = dd.querySelectorAll('.msi');
-  for (var i = 0; i < items.length; i++) {
-    items[i].style.display = items[i].dataset.val.indexOf(lq) !== -1 ? '' : 'none';
-  }
+  for (var i = 0; i < items.length; i++) items[i].style.display = items[i].dataset.val.indexOf(lq) !== -1 ? '' : 'none';
 }
 
 function updMsLbl(cfg) {
@@ -537,9 +658,7 @@ function updMsLbl(cfg) {
 
 function togDd(id) {
   var dds = document.querySelectorAll('.msd');
-  for (var i = 0; i < dds.length; i++) {
-    if (dds[i].id !== id) dds[i].classList.remove('open');
-  }
+  for (var i = 0; i < dds.length; i++) { if (dds[i].id !== id) dds[i].classList.remove('open'); }
   document.getElementById(id).classList.toggle('open');
 }
 
@@ -594,7 +713,7 @@ function doFilter() {
     if (msState.catman.size   && !msState.catman.has(r._sp7))    continue;
     if (msState.kreditor.size && !msState.kreditor.has(r._sp9))  continue;
     if (gl) {
-      var s = r._artnr+' '+r._bez+' '+r._marke+' '+r._modell+' '+r._saison+' '+r._wg+' '+r._sp7+' '+r._sp9+' '+r._bem+' '+r._farbe;
+      var s = r._artnr + ' ' + r._bez + ' ' + r._marke + ' ' + r._modell + ' ' + r._saison + ' ' + r._wg + ' ' + r._sp7 + ' ' + r._sp9 + ' ' + r._bem + ' ' + r._farbe + ' ' + r._groesse;
       if (s.toLowerCase().indexOf(gl) === -1) continue;
     }
     filtered.push(r);
@@ -612,6 +731,7 @@ function doFilter() {
 }
 
 function renderTable() {
+  var COLS = getActiveCols();
   var thead = document.getElementById('th');
   var tbody = document.getElementById('tb');
   thead.innerHTML = '';
@@ -619,12 +739,16 @@ function renderTable() {
   for (var hi = 0; hi < COLS.length; hi++) {
     var col = COLS[hi];
     var th = document.createElement('th');
+    th.style.position = 'relative';
     th.textContent = col.h;
     if (sortK === col.k) th.className = sortD === 1 ? 'asc' : 'desc';
+    if (colWidths[col.k]) { th.style.width = colWidths[col.k] + 'px'; th.style.minWidth = colWidths[col.k] + 'px'; }
     (function(k) { th.onclick = function() { if (sortK === k) sortD *= -1; else { sortK = k; sortD = 1; } applyF(); }; })(col.k);
+    addResizer(th, col.k);
     htr.appendChild(th);
   }
   thead.appendChild(htr);
+
   var slice = filtered.slice(0, 500);
   var frag = document.createDocumentFragment();
   for (var ri = 0; ri < slice.length; ri++) {
@@ -654,7 +778,7 @@ function renderTable() {
         inp.style.border = '1px solid ' + (row._man ? 'var(--acc2)' : 'var(--brd)');
         inp.style.borderRadius = '4px'; inp.style.padding = '2px 6px';
         inp.style.fontSize = '12px'; inp.style.outline = 'none';
-        (function(r, inp, bci) {
+        (function(r, inp) {
           inp.onfocus = function() { inp.style.borderColor = 'var(--acc2)'; };
           inp.onblur  = function() { if (!inp.value) inp.style.borderColor = 'var(--brd)'; };
           inp.oninput = function() {
@@ -663,14 +787,18 @@ function renderTable() {
             if (val) { overrides[r._artnr] = val; inp.style.borderColor = 'var(--acc2)'; }
             else { delete overrides[r._artnr]; inp.style.borderColor = 'var(--brd)'; }
             var tds = inp.closest('tr').querySelectorAll('td');
-            var bc = tds[bci - 1];
-            if (bc) {
-              if (val) { bc.textContent = '-'; bc.className = ''; bc.style.color = 'var(--txt2)'; }
-              else { bc.textContent = r._best > 0 ? String(r._best) : '-'; bc.className = r._best > 0 ? 'ocell' : ''; bc.style.color = ''; }
+            var ac = getActiveCols();
+            for (var xi = 0; xi < ac.length; xi++) {
+              if (ac[xi].k === '_best' && tds[xi]) {
+                var bc = tds[xi];
+                if (val) { bc.textContent = '-'; bc.className = ''; bc.style.color = 'var(--txt2)'; }
+                else { bc.textContent = r._best > 0 ? String(r._best) : '-'; bc.className = r._best > 0 ? 'ocell' : ''; bc.style.color = ''; }
+                break;
+              }
             }
             renderStats();
           };
-        })(row, inp, ci);
+        })(row, inp);
         td.appendChild(inp);
       } else if (col.k === '_ek') {
         td.textContent = v ? Number(v).toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}) : '-';
@@ -692,16 +820,16 @@ function renderTable() {
 }
 
 function renderStats() {
-  var ords = [], sum = 0, wrt = 0, red = 0;
+  var sum = 0, wrt = 0, red = 0, cnt = 0;
   for (var i = 0; i < filtered.length; i++) {
     var r = filtered[i];
     var m = r._man ? Number(r._man) : r._best;
-    if (m > 0) { ords.push(r); sum += m; wrt += m * nv(r._ek); }
+    if (m > 0) { cnt++; sum += m; wrt += m * nv(r._ek); }
     if (r._ampel === 'red') red++;
   }
   document.getElementById('sTot').textContent = raw.length.toLocaleString('de-DE');
   document.getElementById('sFil').textContent = filtered.length.toLocaleString('de-DE');
-  document.getElementById('sCnt').textContent = ords.length.toLocaleString('de-DE');
+  document.getElementById('sCnt').textContent = cnt.toLocaleString('de-DE');
   document.getElementById('sSum').textContent = sum.toLocaleString('de-DE');
   document.getElementById('sWrt').textContent = 'EUR ' + wrt.toLocaleString('de-DE', {minimumFractionDigits:0, maximumFractionDigits:0});
   document.getElementById('sRed').textContent = red.toLocaleString('de-DE');
@@ -716,23 +844,23 @@ function getExport() {
     var r = filtered[i];
     var m = r._man ? Number(r._man) : r._best;
     if (m > 0) {
-      result.push({
-        'Artikelnummer':       r._artnr,
-        'Modellnummer':        r._modell,
-        'Kred. Artikelnummer': r._kred,
-        'Farbe':               r._farbe,
-        'Groesse':             r._groesse,
-        'Bezeichnung':         r._bez,
-        'EAN':                 r._ean,
-        'Bestellmenge':        m,
-        'Manuell':             r._man ? 'Ja' : 'Nein',
-        'Letzter EK Preis':    r._ek,
-        'Category Manager':    r._sp7,
-        'Kreditor Nr.':        r._sp8,
-        'Kreditorenname':      r._sp9,
-        'Cluster':             r._cluster,
-        'Bemerkung':           r._bem
-      });
+      var obj = {};
+      obj['Artikelnummer']       = r._artnr;
+      obj['Modellnummer']        = r._modell;
+      obj['Kred. Artikelnummer'] = r._kred;
+      obj['EAN']                 = r._ean;
+      obj['Farbe']               = r._farbe;
+      obj['Groesse']             = r._groesse;
+      obj['Bezeichnung']         = r._bez;
+      obj['Bestellmenge']        = m;
+      obj['Manuell']             = r._man ? 'Ja' : 'Nein';
+      obj['Letzter EK Preis']    = r._ek;
+      obj['Category Manager']    = r._sp7;
+      obj['Kreditor Nr.']        = r._sp8;
+      obj['Kreditorenname']      = r._sp9;
+      obj['Cluster']             = r._cluster;
+      obj['Bemerkung']           = r._bem;
+      result.push(obj);
     }
   }
   return result;
@@ -753,7 +881,8 @@ function expCSV() {
   var keys = Object.keys(rows[0]);
   var lines = [keys.join(';')];
   for (var i = 0; i < rows.length; i++) {
-    lines.push(keys.map(function(k) { return '"' + String(rows[i][k]).replace(/"/g, '""') + '"'; }).join(';'));
+    var row = rows[i];
+    lines.push(keys.map(function(k) { return '"' + String(row[k]).replace(/"/g, '""') + '"'; }).join(';'));
   }
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], {type:'text/csv;charset=utf-8;'}));
@@ -808,6 +937,8 @@ function resetAll() {
   document.getElementById('bRed').textContent = 'Aus'; document.getElementById('bRed').classList.remove('on');
 }
 
+loadColPrefs();
+loadColWidths();
 loadS();
 try { var ts = localStorage.getItem('no_ts'); if (ts) document.getElementById('lupd').innerHTML = 'Letzte Aktualisierung: <strong>' + ts + '</strong>'; } catch(e) {}
 document.getElementById('pwinp').focus();
