@@ -70,11 +70,6 @@ thead th.desc::after{content:' \2193';color:var(--acc);}
 tbody tr{border-bottom:1px solid var(--brd);}
 tbody tr:hover{background:var(--sur2);}
 tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-overflow:ellipsis;}
-.dot{display:inline-block;width:10px;height:10px;border-radius:50%;}
-.dot.red{background:var(--red);box-shadow:0 0 6px rgba(220,38,38,.4);}
-.dot.yellow{background:var(--yel);box-shadow:0 0 6px rgba(217,119,6,.4);}
-.dot.green{background:var(--grn);box-shadow:0 0 6px rgba(22,163,74,.4);}
-.ocell{font-weight:700;color:var(--acc);}
 .col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:11;}
 .col-resizer:hover,.col-resizer.active{background:var(--acc);opacity:.5;}
 #spin{display:none;position:fixed;bottom:60px;right:20px;background:var(--sur);border:1px solid var(--brd);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--txt2);align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:50;}
@@ -93,12 +88,14 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 @keyframes sp{to{transform:rotate(360deg);}}
 #empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--txt2);}
 .nodata{text-align:center;color:var(--txt2);padding:40px;}
+
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:#b0b8c8;border-radius:3px;}
 </style>
 </head>
 <body>
+
 <div id="pwscreen">
   <div class="pwbox">
     <h2>&#128274; Nachorder Tool</h2>
@@ -108,6 +105,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
     <div class="pwerr" id="pwerr"></div>
   </div>
 </div>
+
 <div id="load"><div class="hourglass">&#8987;</div><p id="ltxt" style="font-size:15px;font-weight:600;color:var(--txt);">Wird geladen...</p></div>
 <div id="spin"><div class="mspin"></div> Wird gefiltert...</div>
 
@@ -126,6 +124,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div id="finfo" style="color:var(--txt2);font-size:12px;margin-left:8px;"></div>
   <div id="lupd" style="margin-left:auto;color:var(--txt2);font-size:12px;"></div>
 </div>
+
 <div id="sbar">
   <div class="sg"><label>Lieferzeit:</label>
     <select id="sLief" onchange="recalc()">
@@ -147,6 +146,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="sg"><label>Nur Bestellmenge &gt; 0:</label><button class="tbtn" id="bOrd" onclick="togOrd()">Aus</button></div>
   <div class="sg"><label>Nur Rot:</label><button class="tbtn" id="bRed" onclick="togRed()">Aus</button></div>
 </div>
+
 <div id="fbar">
   <div class="fg"><label>Globale Suche</label><input type="text" id="fG" placeholder="Alle Felder..." oninput="applyF()" style="width:180px;"></div>
   <div class="fg"><label>Artikelnummer</label><input type="text" id="fA" placeholder="Nr..." oninput="applyF()"></div>
@@ -160,6 +160,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="fg" style="flex-direction:row;align-items:center;gap:8px;"><label>Cluster:</label><div class="ctabs" id="ctabs"></div></div>
   <div style="margin-left:auto;display:flex;align-items:flex-end;"><button class="btn sec" onclick="clearF()">x Filter loeschen</button></div>
 </div>
+
 <div id="lgnd">
   <button id="ltog" onclick="togLgnd()"><span class="arr">&#9658;</span> Legende &amp; Nachbestelllogik</button>
   <div id="lcon">
@@ -179,6 +180,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
     </div>
   </div>
 </div>
+
 <div id="stbar">
   <div class="st"><span class="stl">Gesamt</span><span class="stv" id="sTot">-</span></div>
   <div class="st"><span class="stl">Gefiltert</span><span class="stv" id="sFil">-</span></div>
@@ -187,10 +189,12 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="st"><span class="stl">Summe Bestellwert EK</span><span class="stv" id="sWrt">-</span></div>
   <div class="st"><span class="stl">Kritisch</span><span class="stv" id="sRed" style="color:var(--red)">-</span></div>
 </div>
+
 <div id="twrap">
   <div id="empty"><p>Daten werden geladen...</p></div>
   <table id="tbl" style="display:none"><thead id="th"></thead><tbody id="tb"></tbody></table>
 </div>
+
 <div id="bbar">
   <button class="btn" onclick="expXLSX()">Bestellvorschlag (.xlsx)</button>
   <button class="btn sec" onclick="expCSV()">CSV Export</button>
@@ -201,6 +205,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 <script>
 var PW = 'Einkauf2026Dashboard';
 var CSV_URL = './import_fertig.csv';
+
 var raw = [], calc = [], filtered = [];
 var sortK = null, sortD = 1;
 var onlyOrd = false, onlyRed = false;
@@ -209,38 +214,37 @@ var ftimer = null;
 var overrides = {};
 var colWidths = {};
 
-// column key map - filled by detectCols
-var CK = {};
-CK.artnr = ''; CK.bez = ''; CK.ean = ''; CK.kred = ''; CK.wg = '';
-CK.marke = ''; CK.modell = ''; CK.saison = ''; CK.farbe = ''; CK.groesse = '';
-CK.a30 = ''; CK.a7 = ''; CK.bestand = ''; CK.offen = ''; CK.ek = '';
-CK.bem = ''; CK.sp7 = ''; CK.sp8 = ''; CK.sp9 = '';
+var C = {
+  artnr:'', bez:'', ean:'', kred:'', wg:'', marke:'', modell:'', saison:'',
+  farbe:'', groesse:'', a30:'', a7:'', bestand:'', offen:'', ek:'', bem:'',
+  sp7:'', sp8:'', sp9:''
+};
 
 var ALL_COLS = [
-  {k:'_ampel',   h:'Status'},
-  {k:'_artnr',   h:'Art.-Nr.'},
-  {k:'_modell',  h:'Modell-Nr.'},
-  {k:'_kred',    h:'Kred. Art.-Nr.'},
-  {k:'_ean',     h:'EAN'},
-  {k:'_farbe',   h:'Farbe'},
-  {k:'_groesse', h:'Groesse'},
-  {k:'_bez',     h:'Bezeichnung'},
-  {k:'_marke',   h:'Marke'},
-  {k:'_wg',      h:'WG-Code'},
-  {k:'_saison',  h:'Saison'},
-  {k:'_bestand', h:'Bestand'},
-  {k:'_offen',   h:'Offen'},
-  {k:'_verf',    h:'Verfuegbar'},
-  {k:'_a7',      h:'VK Menge 7T'},
-  {k:'_a30',     h:'VK Menge 30T'},
-  {k:'_trend',   h:'Trend'},
-  {k:'_best',    h:'Bestellvorschlag'},
-  {k:'_man',     h:'Meine Menge'},
-  {k:'_sp7',     h:'Cat. Mgr.'},
-  {k:'_sp8',     h:'Kreditor Nr.'},
-  {k:'_sp9',     h:'Kreditorenname'},
-  {k:'_ek',      h:'Letzt. EK'},
-  {k:'_bem',     h:'Bemerkung'}
+  {k:'_ampel',   h:'Status',           def:true},
+  {k:'_artnr',   h:'Art.-Nr.',          def:true},
+  {k:'_modell',  h:'Modell-Nr.',        def:true},
+  {k:'_kred',    h:'Kred. Art.-Nr.',    def:true},
+  {k:'_ean',     h:'EAN',               def:true},
+  {k:'_farbe',   h:'Farbe',             def:true},
+  {k:'_groesse', h:'Groesse',           def:true},
+  {k:'_bez',     h:'Bezeichnung',       def:true},
+  {k:'_marke',   h:'Marke',             def:true},
+  {k:'_wg',      h:'WG-Code',           def:true},
+  {k:'_saison',  h:'Saison',            def:true},
+  {k:'_bestand', h:'Bestand',           def:true},
+  {k:'_offen',   h:'Offen',             def:true},
+  {k:'_verf',    h:'Verfuegbar',        def:true},
+  {k:'_a7',      h:'VK Menge 7T',      def:true},
+  {k:'_a30',     h:'VK Menge 30T',     def:true},
+  {k:'_trend',   h:'Trend',             def:true},
+  {k:'_best',    h:'Bestellvorschlag',  def:true},
+  {k:'_man',     h:'Meine Menge',       def:true},
+  {k:'_sp7',     h:'Cat. Mgr.',         def:true},
+  {k:'_sp8',     h:'Kreditor Nr.',      def:true},
+  {k:'_sp9',     h:'Kreditorenname',    def:true},
+  {k:'_ek',      h:'Letzt. EK',         def:true},
+  {k:'_bem',     h:'Bemerkung',         def:true}
 ];
 
 var WG = {
@@ -293,6 +297,115 @@ var WG = {
   R031:'Sonstiges',R032:'Sonstiges',R035:'Sonstiges',R041:'Sonstiges',R999:'Sonstiges'
 };
 
+function loadColPrefs() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('no_cols') || 'null');
+    for (var i = 0; i < ALL_COLS.length; i++) {
+      var k = ALL_COLS[i].k;
+      colVisible[k] = (saved && saved[k] !== undefined) ? saved[k] : ALL_COLS[i].def;
+    }
+  } catch(e) {
+    for (var j = 0; j < ALL_COLS.length; j++) colVisible[ALL_COLS[j].k] = ALL_COLS[j].def;
+  }
+}
+
+function saveColPrefs() {
+  try { localStorage.setItem('no_cols', JSON.stringify(colVisible)); } catch(e) {}
+}
+
+function loadColWidths() {
+  try { colWidths = JSON.parse(localStorage.getItem('no_colw') || '{}'); } catch(e) { colWidths = {}; }
+}
+
+function saveColWidths() {
+  try { localStorage.setItem('no_colw', JSON.stringify(colWidths)); } catch(e) {}
+}
+
+function getActiveCols() {
+  var r = [];
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    if (colVisible[ALL_COLS[i].k]) r.push(ALL_COLS[i]);
+  }
+  return r;
+}
+
+function openColCfg() {
+  var list = document.getElementById('colcfg-list');
+  list.innerHTML = '';
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    var col = ALL_COLS[i];
+    var item = document.createElement('label');
+    item.className = 'colcfg-item';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!colVisible[col.k];
+    (function(k, cb) {
+      cb.onchange = function() { colVisible[k] = cb.checked; saveColPrefs(); renderTable(); };
+    })(col.k, cb);
+    item.appendChild(cb);
+    item.appendChild(document.createTextNode(col.h));
+    list.appendChild(item);
+  }
+  document.getElementById('colcfg-overlay').style.display = 'block';
+  document.getElementById('colcfg-panel').style.display = 'block';
+}
+
+function closeColCfg() {
+  document.getElementById('colcfg-overlay').style.display = 'none';
+  document.getElementById('colcfg-panel').style.display = 'none';
+}
+
+function colSelectAll() {
+  for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = true;
+  saveColPrefs(); openColCfg(); renderTable();
+}
+
+function colSelectNone() {
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    colVisible[ALL_COLS[i].k] = (ALL_COLS[i].k === '_ampel' || ALL_COLS[i].k === '_artnr' || ALL_COLS[i].k === '_best');
+  }
+  saveColPrefs(); openColCfg(); renderTable();
+}
+
+function colReset() {
+  for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = ALL_COLS[i].def;
+  saveColPrefs(); openColCfg(); renderTable();
+}
+
+function colWidthReset() {
+  colWidths = {};
+  saveColWidths();
+  renderTable();
+}
+
+function addResizer(th, colKey) {
+  var resizer = document.createElement('div');
+  resizer.className = 'col-resizer';
+  resizer.onclick = function(e) { e.stopPropagation(); };
+  resizer.onmousedown = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    resizer.classList.add('active');
+    var startX = e.clientX;
+    var startW = th.offsetWidth;
+    function onMove(ev) {
+      var newW = Math.max(30, startW + ev.clientX - startX);
+      th.style.width = newW + 'px';
+      th.style.minWidth = newW + 'px';
+      colWidths[colKey] = newW;
+    }
+    function onUp() {
+      resizer.classList.remove('active');
+      saveColWidths();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+  th.appendChild(resizer);
+}
+
 function checkPw() {
   if (document.getElementById('pwinp').value === PW) {
     document.getElementById('pwscreen').style.display = 'none';
@@ -310,45 +423,29 @@ function nv(v) {
   return isNaN(x) ? 0 : x;
 }
 
-function findKey(keys, name) {
-  // exact match first
-  for (var i = 0; i < keys.length; i++) {
-    if (keys[i] === name) return keys[i];
-  }
-  // lowercase contains match
-  var lo = name.toLowerCase();
-  for (var j = 0; j < keys.length; j++) {
-    if (keys[j].toLowerCase().indexOf(lo) !== -1) return keys[j];
-  }
-  return '';
-}
-
 function detectCols(headers) {
-  CK.artnr   = findKey(headers, 'Artikelnummer');
-  CK.bez     = findKey(headers, 'Bezeichnung');
-  CK.ean     = findKey(headers, 'EAN');
-  CK.kred    = findKey(headers, 'Kred_Artikelnummer');
-  CK.wg      = findKey(headers, 'Warengruppe');
-  CK.marke   = findKey(headers, 'Marke');
-  CK.modell  = findKey(headers, 'Modellnummer');
-  CK.saison  = findKey(headers, 'Saison');
-  CK.farbe   = findKey(headers, 'Farbe');
-  CK.a30     = findKey(headers, 'Absatz_30T');
-  CK.a7      = findKey(headers, 'Absatz_7T');
-  CK.offen   = findKey(headers, 'Offen');
-  CK.bem     = findKey(headers, 'BEMERKUNG');
-  CK.sp7     = findKey(headers, 'Spalte7');
-  CK.sp8     = findKey(headers, 'Spalte8');
-  CK.sp9     = findKey(headers, 'Spalte9');
-  // size - try multiple names
-  CK.groesse = findKey(headers, 'Herstellergroesse');
-  if (!CK.groesse) CK.groesse = findKey(headers, 'Herstellergr');
-  // bestand - find key containing 'bestand'
-  CK.bestand = findKey(headers, 'bestand');
-  // ek - find key containing 'letzter' and 'wert'
   for (var i = 0; i < headers.length; i++) {
-    var hl = headers[i].toLowerCase();
-    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) { CK.ek = headers[i]; break; }
+    var h = headers[i].replace(/^\uFEFF/, '').trim();
+    var hl = h.toLowerCase();
+    if (h === 'Artikelnummer')      C.artnr   = h;
+    if (h === 'Bezeichnung')        C.bez     = h;
+    if (h === 'EAN')                C.ean     = h;
+    if (h === 'Kred_Artikelnummer') C.kred    = h;
+    if (h === 'Warengruppe')        C.wg      = h;
+    if (h === 'Marke')              C.marke   = h;
+    if (h === 'Modellnummer')       C.modell  = h;
+    if (h === 'Saison')             C.saison  = h;
+    if (h === 'Farbe')              C.farbe   = h;
+    if (h === 'Absatz_30T')         C.a30     = h;
+    if (h === 'Absatz_7T')          C.a7      = h;
+    if (h === 'Offen')              C.offen   = h;
+    if (h === 'BEMERKUNG')          C.bem     = h;
+    if (h === 'Spalte7')            C.sp7     = h;
+    if (h === 'Spalte8')            C.sp8     = h;
+    if (h === 'Spalte9')            C.sp9     = h;
+    if (h === 'Herstellergroesse' || h === 'Herstellergr\u00f6\u00dfe') C.groesse = h;
+    if (hl.indexOf('bestand') !== -1) C.bestand = h;
+    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) C.ek = h;
   }
 }
 
@@ -356,13 +453,13 @@ function calcRow(row) {
   var lief    = parseInt(document.getElementById('sLief').value);
   var reich   = parseInt(document.getElementById('sReich').value);
   var rund    = parseInt(document.getElementById('sRund').value);
-  var a30     = nv(row[CK.a30]);
-  var a7      = nv(row[CK.a7]);
+  var a30     = nv(row[C.a30]);
+  var a7      = nv(row[C.a7]);
   var std     = a30 / 4;
   var trend   = a7 > std;
   var wabs    = trend ? (a7 * 0.7 + std * 0.3) : std;
-  var bestand = nv(row[CK.bestand]);
-  var offen   = nv(row[CK.offen]);
+  var bestand = nv(row[C.bestand]);
+  var offen   = nv(row[C.offen]);
   var verf    = bestand + offen;
   var bed     = wabs * (reich + lief);
   var best    = bed - verf;
@@ -371,23 +468,23 @@ function calcRow(row) {
   else best = Math.round(best);
   var rw    = wabs > 0 ? verf / wabs : 99;
   var ampel = rw < 1 ? 'red' : (rw < 3 ? 'yellow' : 'green');
-  var wgKey = (row[CK.wg] || '').trim().toUpperCase();
+  var wgKey = (row[C.wg] || '').trim().toUpperCase();
   var r = {};
-  r._artnr   = row[CK.artnr]   || '';
-  r._bez     = row[CK.bez]     || '';
-  r._ean     = row[CK.ean]     || '';
-  r._kred    = row[CK.kred]    || '';
-  r._wg      = row[CK.wg]      || '';
-  r._marke   = row[CK.marke]   || '';
-  r._modell  = row[CK.modell]  || '';
-  r._saison  = row[CK.saison]  || '';
-  r._farbe   = row[CK.farbe]   || '';
-  r._groesse = row[CK.groesse] || '';
-  r._sp7     = row[CK.sp7]     || '';
-  r._sp8     = row[CK.sp8]     || '';
-  r._sp9     = row[CK.sp9]     || '';
-  r._ek      = row[CK.ek]      || '';
-  r._bem     = row[CK.bem]     || '';
+  r._artnr   = row[C.artnr]   || '';
+  r._bez     = row[C.bez]     || '';
+  r._ean     = row[C.ean]     || '';
+  r._kred    = row[C.kred]    || '';
+  r._wg      = row[C.wg]      || '';
+  r._marke   = row[C.marke]   || '';
+  r._modell  = row[C.modell]  || '';
+  r._saison  = row[C.saison]  || '';
+  r._farbe   = row[C.farbe]   || '';
+  r._groesse = row[C.groesse] || '';
+  r._sp7     = row[C.sp7]     || '';
+  r._sp8     = row[C.sp8]     || '';
+  r._sp9     = row[C.sp9]     || '';
+  r._ek      = row[C.ek]      || '';
+  r._bem     = row[C.bem]     || '';
   r._bestand = bestand;
   r._offen   = offen;
   r._a30     = a30;
@@ -396,7 +493,7 @@ function calcRow(row) {
   r._wabs    = wabs;
   r._trend   = trend;
   r._best    = best;
-  r._man     = overrides[row[CK.artnr]] || '';
+  r._man     = overrides[row[C.artnr]] || '';
   r._ampel   = ampel;
   r._cluster = WG[wgKey] || 'Sonstiges';
   return r;
@@ -428,7 +525,7 @@ function loadCSV() {
       var sep = firstLine.indexOf(';') > firstLine.indexOf(',') ? ';' : ',';
       var lines = text.split('\n');
       var headers = lines[0].split(sep).map(function(h) {
-        return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
+        return h.replace(/^"|"$/g,'').replace(/^\uFEFF/,'').trim();
       });
       detectCols(headers);
       raw = [];
@@ -438,7 +535,7 @@ function loadCSV() {
         var vals = splitCSVLine(line, sep);
         var row = {};
         for (var j = 0; j < headers.length; j++) {
-          row[headers[j]] = vals[j] !== undefined ? vals[j].replace(/^"|"$/g, '') : '';
+          row[headers[j]] = vals[j] !== undefined ? vals[j].replace(/^"|"$/g,'') : '';
         }
         raw.push(row);
       }
@@ -459,7 +556,7 @@ function loadCSV() {
     });
 }
 
-var msState = {marke:new Set(), saison:new Set(), catman:new Set(), kreditor:new Set()};
+var msState = {marke: new Set(), saison: new Set(), catman: new Set(), kreditor: new Set()};
 var msCfg = [
   {id:'msM',    field:'_marke',  key:'marke'},
   {id:'msS',    field:'_saison', key:'saison'},
@@ -614,46 +711,14 @@ function doFilter() {
   renderStats();
 }
 
-function addResizer(th, colKey) {
-  var resizer = document.createElement('div');
-  resizer.className = 'col-resizer';
-  resizer.onclick = function(e) { e.stopPropagation(); };
-  resizer.onmousedown = function(e) {
-    e.preventDefault(); e.stopPropagation();
-    resizer.classList.add('active');
-    var startX = e.clientX;
-    var startW = th.offsetWidth;
-    function onMove(ev) {
-      var newW = Math.max(30, startW + ev.clientX - startX);
-      th.style.width = newW + 'px';
-      th.style.minWidth = newW + 'px';
-      colWidths[colKey] = newW;
-    }
-    function onUp() {
-      resizer.classList.remove('active');
-      try { localStorage.setItem('no_colw', JSON.stringify(colWidths)); } catch(e2) {}
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  };
-  th.appendChild(resizer);
-}
-
-function colWidthReset() {
-  colWidths = {};
-  try { localStorage.removeItem('no_colw'); } catch(e) {}
-  renderTable();
-}
-
 function renderTable() {
+  var COLS = getActiveCols();
   var thead = document.getElementById('th');
   var tbody = document.getElementById('tb');
   thead.innerHTML = '';
   var htr = document.createElement('tr');
-  for (var hi = 0; hi < ALL_COLS.length; hi++) {
-    var col = ALL_COLS[hi];
+  for (var hi = 0; hi < COLS.length; hi++) {
+    var col = COLS[hi];
     var th = document.createElement('th');
     th.style.position = 'relative';
     th.textContent = col.h;
@@ -664,19 +729,19 @@ function renderTable() {
     htr.appendChild(th);
   }
   thead.appendChild(htr);
+
   var slice = filtered.slice(0, 500);
   var frag = document.createDocumentFragment();
   for (var ri = 0; ri < slice.length; ri++) {
     var row = slice[ri];
     var tr = document.createElement('tr');
-    for (var ci = 0; ci < ALL_COLS.length; ci++) {
-      var col = ALL_COLS[ci];
+    for (var ci = 0; ci < COLS.length; ci++) {
+      var col = COLS[ci];
       var td = document.createElement('td');
       var v = row[col.k];
       if (col.k === '_ampel') {
         var dot = document.createElement('span');
-        dot.className = 'dot ' + (v || 'green');
-        td.appendChild(dot);
+        dot.className = 'dot ' + v; td.appendChild(dot);
       } else if (col.k === '_trend') {
         if (v) { td.textContent = '\uD83D\uDD25'; td.style.fontSize = '14px'; }
       } else if (col.k === '_best') {
@@ -703,12 +768,14 @@ function renderTable() {
             if (val) { overrides[r._artnr] = val; inp.style.borderColor = 'var(--acc2)'; }
             else { delete overrides[r._artnr]; inp.style.borderColor = 'var(--brd)'; }
             var tds = inp.closest('tr').querySelectorAll('td');
-            var bestIdx = -1;
-            for (var xi = 0; xi < ALL_COLS.length; xi++) { if (ALL_COLS[xi].k === '_best') { bestIdx = xi; break; } }
-            if (bestIdx >= 0 && tds[bestIdx]) {
-              var bc = tds[bestIdx];
-              if (val) { bc.textContent = '-'; bc.className = ''; bc.style.color = 'var(--txt2)'; }
-              else { bc.textContent = r._best > 0 ? String(r._best) : '-'; bc.className = r._best > 0 ? 'ocell' : ''; bc.style.color = ''; }
+            var ac = getActiveCols();
+            for (var xi = 0; xi < ac.length; xi++) {
+              if (ac[xi].k === '_best' && tds[xi]) {
+                var bc = tds[xi];
+                if (val) { bc.textContent = '-'; bc.className = ''; bc.style.color = 'var(--txt2)'; }
+                else { bc.textContent = r._best > 0 ? String(r._best) : '-'; bc.className = r._best > 0 ? 'ocell' : ''; bc.style.color = ''; }
+                break;
+              }
             }
             renderStats();
           };
@@ -727,7 +794,7 @@ function renderTable() {
   if (filtered.length > 500) {
     var mr = document.createElement('tr');
     var md = document.createElement('td');
-    md.colSpan = ALL_COLS.length; md.className = 'nodata';
+    md.colSpan = COLS.length; md.className = 'nodata';
     md.textContent = '... ' + (filtered.length - 500) + ' weitere Artikel (Filter verfeinern)';
     mr.appendChild(md); tbody.appendChild(mr);
   }
@@ -759,21 +826,21 @@ function getExport() {
     var m = r._man ? Number(r._man) : r._best;
     if (m > 0) {
       var obj = {};
-      obj['Artikelnummer'] = r._artnr;
-      obj['Modellnummer'] = r._modell;
+      obj['Artikelnummer']       = r._artnr;
+      obj['Modellnummer']        = r._modell;
       obj['Kred. Artikelnummer'] = r._kred;
-      obj['EAN'] = r._ean;
-      obj['Farbe'] = r._farbe;
-      obj['Groesse'] = r._groesse;
-      obj['Bezeichnung'] = r._bez;
-      obj['Bestellmenge'] = m;
-      obj['Manuell'] = r._man ? 'Ja' : 'Nein';
-      obj['Letzter EK Preis'] = r._ek;
-      obj['Category Manager'] = r._sp7;
-      obj['Kreditor Nr.'] = r._sp8;
-      obj['Kreditorenname'] = r._sp9;
-      obj['Cluster'] = r._cluster;
-      obj['Bemerkung'] = r._bem;
+      obj['EAN']                 = r._ean;
+      obj['Farbe']               = r._farbe;
+      obj['Groesse']             = r._groesse;
+      obj['Bezeichnung']         = r._bez;
+      obj['Bestellmenge']        = m;
+      obj['Manuell']             = r._man ? 'Ja' : 'Nein';
+      obj['Letzter EK Preis']    = r._ek;
+      obj['Category Manager']    = r._sp7;
+      obj['Kreditor Nr.']        = r._sp8;
+      obj['Kreditorenname']      = r._sp9;
+      obj['Cluster']             = r._cluster;
+      obj['Bemerkung']           = r._bem;
       result.push(obj);
     }
   }
@@ -851,7 +918,7 @@ function resetAll() {
   document.getElementById('bRed').textContent = 'Aus'; document.getElementById('bRed').classList.remove('on');
 }
 
-try { colWidths = JSON.parse(localStorage.getItem('no_colw') || '{}'); } catch(e) { colWidths = {}; }
+loadColWidths();
 loadS();
 try { var ts = localStorage.getItem('no_ts'); if (ts) document.getElementById('lupd').innerHTML = 'Letzte Aktualisierung: <strong>' + ts + '</strong>'; } catch(e) {}
 document.getElementById('pwinp').focus();
