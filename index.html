@@ -391,6 +391,32 @@ function splitCSVLine(line, sep) {
   return result;
 }
 
+function parseCSV(text, sep) {
+  var result = [];
+  var cur = '', inQ = false;
+  var row = [];
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (ch === '"') {
+      if (inQ && text[i+1] === '"') { cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (ch === sep && !inQ) {
+      row.push(cur); cur = '';
+    } else if ((ch === '\n' || (ch === '\r' && text[i+1] === '\n')) && !inQ) {
+      if (ch === '\r') i++;
+      row.push(cur); cur = '';
+      result.push(row); row = [];
+    } else if (ch === '\r' && !inQ) {
+      row.push(cur); cur = '';
+      result.push(row); row = [];
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur || row.length) { row.push(cur); result.push(row); }
+  return result;
+}
+
 function loadCSV() {
   showLoad('Daten werden geladen...');
   var btn = document.getElementById('reloadBtn');
@@ -407,35 +433,31 @@ function loadCSV() {
       var cntSemi  = (firstLine.match(/;/g)  || []).length;
       var cntComma = (firstLine.match(/,/g)  || []).length;
       var sep = cntSemi >= cntComma ? ';' : ',';
-      var headers = splitCSVLine(firstLine, sep).map(function(h) {
+      // Parse entire CSV at once (handles multiline quoted fields)
+      var allRows = parseCSV(text, sep);
+      var headers = (allRows[0] || []).map(function(h) {
         return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
       });
-      // sanity check: if no 'artikel' found, try other separator
+      // sanity check
       var hasArtnr = false;
       for (var hi = 0; hi < headers.length; hi++) {
         if (headers[hi].toLowerCase().indexOf('artikel') !== -1) { hasArtnr = true; break; }
       }
       if (!hasArtnr) {
         sep = sep === ';' ? ',' : ';';
-        headers = splitCSVLine(firstLine, sep).map(function(h) {
+        allRows = parseCSV(text, sep);
+        headers = (allRows[0] || []).map(function(h) {
           return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
         });
       }
       detectCols(headers);
       raw = [];
       var numCols = headers.length;
-      for (var i = 1; i < lines.length; i++) {
-        var line = lines[i].trim();
-        if (!line) continue;
-        var vals = splitCSVLine(line, sep);
-        // if too many values, merge excess into first field (Bezeichnung issue)
-        if (vals.length > numCols) {
-          var overflow = vals.length - numCols;
-          var merged = vals.slice(0, overflow + 1).join(',');
-          vals = [merged].concat(vals.slice(overflow + 1));
-        }
+      for (var i = 1; i < allRows.length; i++) {
+        var vals = allRows[i];
+        if (!vals || vals.every(function(v) { return !v; })) continue;
         var row = {};
-        for (var j = 0; j < headers.length; j++) {
+        for (var j = 0; j < numCols; j++) {
           row[headers[j]] = vals[j] !== undefined ? vals[j].replace(/^"|"$/g, '') : '';
         }
         raw.push(row);
