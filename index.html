@@ -155,8 +155,6 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="fg"><label>Kred. Artikelnummer</label><input type="text" id="fK" placeholder="Kred-Nr..." oninput="applyF()"></div>
   <div class="fg"><label>Marke</label><div class="msw" id="msM"></div></div>
   <div class="fg"><label>Saison</label><div class="msw" id="msS"></div></div>
-  <div class="fg"><label>Category Manager</label><div class="msw" id="msCat"></div></div>
-  <div class="fg"><label>Kreditorenname</label><div class="msw" id="msKred"></div></div>
   <div class="fg" style="flex-direction:row;align-items:center;gap:8px;"><label>Cluster:</label><div class="ctabs" id="ctabs"></div></div>
   <div style="margin-left:auto;display:flex;align-items:flex-end;"><button class="btn sec" onclick="clearF()">x Filter loeschen</button></div>
 </div>
@@ -209,12 +207,11 @@ var ftimer = null;
 var overrides = {};
 var colWidths = {};
 
-// column key map - filled by detectCols
 var CK = {};
 CK.artnr = ''; CK.bez = ''; CK.ean = ''; CK.kred = ''; CK.wg = '';
 CK.marke = ''; CK.modell = ''; CK.saison = ''; CK.farbe = ''; CK.groesse = '';
 CK.a30 = ''; CK.a7 = ''; CK.bestand = ''; CK.offen = ''; CK.ek = '';
-CK.bem = ''; CK.sp7 = ''; CK.sp8 = ''; CK.sp9 = '';
+CK.bem = '';
 
 var ALL_COLS = [
   {k:'_ampel',   h:'Status'},
@@ -236,9 +233,6 @@ var ALL_COLS = [
   {k:'_trend',   h:'Trend'},
   {k:'_best',    h:'Bestellvorschlag'},
   {k:'_man',     h:'Meine Menge'},
-  {k:'_sp7',     h:'Cat. Mgr.'},
-  {k:'_sp8',     h:'Kreditor Nr.'},
-  {k:'_sp9',     h:'Kreditorenname'},
   {k:'_ek',      h:'Letzt. EK'},
   {k:'_bem',     h:'Bemerkung'}
 ];
@@ -310,45 +304,26 @@ function nv(v) {
   return isNaN(x) ? 0 : x;
 }
 
-function findKey(keys, name) {
-  // exact match first
-  for (var i = 0; i < keys.length; i++) {
-    if (keys[i] === name) return keys[i];
-  }
-  // lowercase contains match
-  var lo = name.toLowerCase();
-  for (var j = 0; j < keys.length; j++) {
-    if (keys[j].toLowerCase().indexOf(lo) !== -1) return keys[j];
-  }
-  return '';
-}
-
 function detectCols(headers) {
-  CK.artnr   = findKey(headers, 'Artikelnummer');
-  CK.bez     = findKey(headers, 'Bezeichnung');
-  CK.ean     = findKey(headers, 'EAN');
-  CK.kred    = findKey(headers, 'Kred_Artikelnummer');
-  CK.wg      = findKey(headers, 'Warengruppe');
-  CK.marke   = findKey(headers, 'Marke');
-  CK.modell  = findKey(headers, 'Modellnummer');
-  CK.saison  = findKey(headers, 'Saison');
-  CK.farbe   = findKey(headers, 'Farbe');
-  CK.a30     = findKey(headers, 'Absatz_30T');
-  CK.a7      = findKey(headers, 'Absatz_7T');
-  CK.offen   = findKey(headers, 'Offen');
-  CK.bem     = findKey(headers, 'BEMERKUNG');
-  CK.sp7     = findKey(headers, 'Spalte7');
-  CK.sp8     = findKey(headers, 'Spalte8');
-  CK.sp9     = findKey(headers, 'Spalte9');
-  // size - try multiple names
-  CK.groesse = findKey(headers, 'Herstellergroesse');
-  if (!CK.groesse) CK.groesse = findKey(headers, 'Herstellergr');
-  // bestand - find key containing 'bestand'
-  CK.bestand = findKey(headers, 'bestand');
-  // ek - find key containing 'letzter' and 'wert'
   for (var i = 0; i < headers.length; i++) {
-    var hl = headers[i].toLowerCase();
-    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) { CK.ek = headers[i]; break; }
+    var h = headers[i];
+    var hl = h.toLowerCase();
+    if (h === 'Artikelnummer')       CK.artnr   = h;
+    if (h === 'Bezeichnung')         CK.bez     = h;
+    if (h === 'EAN')                 CK.ean     = h;
+    if (h === 'Kred_Artikelnummer')  CK.kred    = h;
+    if (h === 'Warengruppe')         CK.wg      = h;
+    if (h === 'Marke')               CK.marke   = h;
+    if (h === 'Modellnummer')        CK.modell  = h;
+    if (h === 'Saison')              CK.saison  = h;
+    if (h === 'Farbe')               CK.farbe   = h;
+    if (h === 'Absatz_30T')          CK.a30     = h;
+    if (h === 'Absatz_7T')           CK.a7      = h;
+    if (h === 'Offen')               CK.offen   = h;
+    if (h === 'BEMERKUNG')           CK.bem     = h;
+    if (hl.indexOf('hersteller') !== -1) CK.groesse = h;
+    if (hl.indexOf('bestand') !== -1)    CK.bestand = h;
+    if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) CK.ek = h;
   }
 }
 
@@ -383,9 +358,6 @@ function calcRow(row) {
   r._saison  = row[CK.saison]  || '';
   r._farbe   = row[CK.farbe]   || '';
   r._groesse = row[CK.groesse] || '';
-  r._sp7     = row[CK.sp7]     || '';
-  r._sp8     = row[CK.sp8]     || '';
-  r._sp9     = row[CK.sp9]     || '';
   r._ek      = row[CK.ek]      || '';
   r._bem     = row[CK.bem]     || '';
   r._bestand = bestand;
@@ -406,9 +378,14 @@ function splitCSVLine(line, sep) {
   var result = [], cur = '', inQ = false;
   for (var i = 0; i < line.length; i++) {
     var ch = line[i];
-    if (ch === '"') { inQ = !inQ; }
-    else if (ch === sep && !inQ) { result.push(cur); cur = ''; }
-    else { cur += ch; }
+    if (ch === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (ch === sep && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
   }
   result.push(cur);
   return result;
@@ -425,11 +402,26 @@ function loadCSV() {
     })
     .then(function(text) {
       var firstLine = text.split('\n')[0];
-      var sep = firstLine.indexOf(';') > firstLine.indexOf(',') ? ';' : ',';
+      var cntSemi  = (firstLine.match(/;/g)  || []).length;
+      var cntComma = (firstLine.match(/,/g)  || []).length;
+      var cntTab   = (firstLine.match(/\t/g) || []).length;
+      var sep = ';';
+      if (cntComma > cntSemi && cntComma > cntTab) sep = ',';
+      if (cntTab > cntSemi && cntTab > cntComma) sep = '\t';
       var lines = text.split('\n');
       var headers = lines[0].split(sep).map(function(h) {
         return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
       });
+      var hasArtnr = false;
+      for (var hi = 0; hi < headers.length; hi++) {
+        if (headers[hi].toLowerCase().indexOf('artikel') !== -1) { hasArtnr = true; break; }
+      }
+      if (!hasArtnr) {
+        sep = sep === ';' ? ',' : ';';
+        headers = lines[0].split(sep).map(function(h) {
+          return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
+        });
+      }
       detectCols(headers);
       raw = [];
       for (var i = 1; i < lines.length; i++) {
@@ -459,12 +451,10 @@ function loadCSV() {
     });
 }
 
-var msState = {marke:new Set(), saison:new Set(), catman:new Set(), kreditor:new Set()};
+var msState = {marke:new Set(), saison:new Set()};
 var msCfg = [
-  {id:'msM',    field:'_marke',  key:'marke'},
-  {id:'msS',    field:'_saison', key:'saison'},
-  {id:'msCat',  field:'_sp7',   key:'catman'},
-  {id:'msKred', field:'_sp9',   key:'kreditor'}
+  {id:'msM', field:'_marke',  key:'marke'},
+  {id:'msS', field:'_saison', key:'saison'}
 ];
 
 function process() {
@@ -592,12 +582,10 @@ function doFilter() {
     if (fm && r._modell.toLowerCase().indexOf(fm) === -1) continue;
     if (fe && r._ean.toLowerCase().indexOf(fe) === -1) continue;
     if (fk && r._kred.toLowerCase().indexOf(fk) === -1) continue;
-    if (msState.marke.size    && !msState.marke.has(r._marke))   continue;
-    if (msState.saison.size   && !msState.saison.has(r._saison))  continue;
-    if (msState.catman.size   && !msState.catman.has(r._sp7))    continue;
-    if (msState.kreditor.size && !msState.kreditor.has(r._sp9))  continue;
+    if (msState.marke.size  && !msState.marke.has(r._marke))  continue;
+    if (msState.saison.size && !msState.saison.has(r._saison)) continue;
     if (gl) {
-      var s = r._artnr + ' ' + r._bez + ' ' + r._marke + ' ' + r._modell + ' ' + r._saison + ' ' + r._wg + ' ' + r._sp7 + ' ' + r._sp9 + ' ' + r._bem + ' ' + r._farbe + ' ' + r._groesse;
+      var s = r._artnr + ' ' + r._bez + ' ' + r._marke + ' ' + r._modell + ' ' + r._saison + ' ' + r._wg + ' ' + r._bem + ' ' + r._farbe + ' ' + r._groesse;
       if (s.toLowerCase().indexOf(gl) === -1) continue;
     }
     filtered.push(r);
@@ -769,9 +757,6 @@ function getExport() {
       obj['Bestellmenge'] = m;
       obj['Manuell'] = r._man ? 'Ja' : 'Nein';
       obj['Letzter EK Preis'] = r._ek;
-      obj['Category Manager'] = r._sp7;
-      obj['Kreditor Nr.'] = r._sp8;
-      obj['Kreditorenname'] = r._sp9;
       obj['Cluster'] = r._cluster;
       obj['Bemerkung'] = r._bem;
       result.push(obj);
