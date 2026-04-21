@@ -427,10 +427,17 @@ function loadCSV() {
       }
       detectCols(headers);
       raw = [];
+      var numCols = headers.length;
       for (var i = 1; i < lines.length; i++) {
         var line = lines[i].trim();
         if (!line) continue;
         var vals = splitCSVLine(line, sep);
+        // if too many values, merge excess into first field (Bezeichnung issue)
+        if (vals.length > numCols) {
+          var overflow = vals.length - numCols;
+          var merged = vals.slice(0, overflow + 1).join(',');
+          vals = [merged].concat(vals.slice(overflow + 1));
+        }
         var row = {};
         for (var j = 0; j < headers.length; j++) {
           row[headers[j]] = vals[j] !== undefined ? vals[j].replace(/^"|"$/g, '') : '';
