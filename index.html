@@ -403,14 +403,10 @@ function loadCSV() {
     .then(function(text) {
       var lines = text.split('\n');
       var firstLine = lines[0];
-      // If first line starts with a quote, fields are quoted - use comma
-      // Otherwise count separators
-      var sep = ',';
-      if (firstLine.indexOf('"') === -1) {
-        var cntSemi  = (firstLine.match(/;/g)  || []).length;
-        var cntComma = (firstLine.match(/,/g)  || []).length;
-        sep = cntSemi >= cntComma ? ';' : ',';
-      }
+      // Count separators in header line only
+      var cntSemi  = (firstLine.match(/;/g)  || []).length;
+      var cntComma = (firstLine.match(/,/g)  || []).length;
+      var sep = cntSemi >= cntComma ? ';' : ',';
       var headers = splitCSVLine(firstLine, sep).map(function(h) {
         return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
       });
