@@ -126,7 +126,14 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div id="finfo" style="color:var(--txt2);font-size:12px;margin-left:8px;"></div>
   <div id="lupd" style="margin-left:auto;color:var(--txt2);font-size:12px;"></div>
 </div>
-<div id="sbar">
+<!-- Tabs -->
+<div id="tabs">
+  <div class="tab active" onclick="switchTab('nachorder')">Nachorder</div>
+  <div class="tab" onclick="switchTab('ma')">Mitarbeiter Auftrag</div>
+</div>
+
+<!-- Nachorder content wrapper -->
+<div id="nachorder-section" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
   <div class="sg"><label>Lieferzeit:</label>
     <select id="sLief" onchange="recalc()">
       <option value="1">1 Woche</option><option value="2" selected>2 Wochen</option>
@@ -188,8 +195,36 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 <div id="twrap">
   <div id="empty"><p>Daten werden geladen...</p></div>
   <table id="tbl" style="display:none"><thead id="th"></thead><tbody id="tb"></tbody></table>
+</div><!-- end nachorder-section -->
+
+<!-- Mitarbeiter Auftrag Section -->
+<div id="ma-section">
+  <div id="ma-fbar">
+    <div class="fg">
+      <label>Artikelnummern (eine pro Zeile oder Leerzeichen)</label>
+      <textarea id="ma-artnr-input" placeholder="X0000012&#10;X0000013&#10;X0000014..." oninput="maFilter()"></textarea>
+    </div>
+    <div class="fg">
+      <label>Marke</label>
+      <div class="msw" id="maMsMarke"></div>
+    </div>
+    <div class="fg">
+      <label>Saison</label>
+      <div class="msw" id="maMsSaison"></div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:8px;">
+      <button class="btn sec" onclick="maClear()">x Leeren</button>
+      <button class="btn" onclick="maExport()">&#128229; Export (.xlsx)</button>
+    </div>
+  </div>
+  <div id="ma-stats">
+    <div class="st"><span class="stl">Gefiltert</span><span class="stv" id="ma-cnt">-</span></div>
+    <div class="st"><span class="stl">Gesamt Mitarbeiterpreis</span><span class="stv" id="ma-sum">-</span></div>
+  </div>
+  <div id="ma-twrap">
+    <table id="ma-tbl"><thead id="ma-th"></thead><tbody id="ma-tb"></tbody></table>
+  </div>
 </div>
-<div id="bbar">
   <button class="btn" onclick="expXLSX()">Bestellvorschlag (.xlsx)</button>
   <button class="btn sec" onclick="expCSV()">CSV Export</button>
   <button class="btn del" onclick="resetAll()" style="margin-left:auto">Reset</button>
@@ -211,7 +246,7 @@ var CK = {};
 CK.artnr = ''; CK.bez = ''; CK.ean = ''; CK.kred = ''; CK.wg = '';
 CK.marke = ''; CK.modell = ''; CK.saison = ''; CK.farbe = ''; CK.groesse = '';
 CK.a30 = ''; CK.a7 = ''; CK.bestand = ''; CK.offen = ''; CK.ek = '';
-CK.bem = '';
+CK.online = '';
 
 var ALL_COLS = [
   {k:'_ampel',   h:'Status'},
@@ -321,7 +356,7 @@ function detectCols(headers) {
     if (h === 'Absatz_7T')           CK.a7      = h;
     if (h === 'Offen')               CK.offen   = h;
     if (h === 'BEMERKUNG')           CK.bem     = h;
-    if (hl.indexOf('hersteller') !== -1) CK.groesse = h;
+    if (h === 'Preis_Online')        CK.online  = h;
     if (hl.indexOf('bestand') !== -1)    CK.bestand = h;
     if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) CK.ek = h;
   }
@@ -358,6 +393,7 @@ function calcRow(row) {
   r._saison  = row[CK.saison]  || '';
   r._farbe   = row[CK.farbe]   || '';
   r._groesse = row[CK.groesse] || '';
+  r._online  = row[CK.online]  || '';
   r._ek      = row[CK.ek]      || '';
   r._bem     = row[CK.bem]     || '';
   r._bestand = bestand;
@@ -864,7 +900,198 @@ function resetAll() {
   document.getElementById('bRed').textContent = 'Aus'; document.getElementById('bRed').classList.remove('on');
 }
 
-try { colWidths = JSON.parse(localStorage.getItem('no_colw') || '{}'); } catch(e) { colWidths = {}; }
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  var tabs = document.querySelectorAll('.tab');
+  tabs[0].classList.toggle('active', tab === 'nachorder');
+  tabs[1].classList.toggle('active', tab === 'ma');
+  document.getElementById('nachorder-section').style.display = tab === 'nachorder' ? 'flex' : 'none';
+  document.getElementById('ma-section').style.display       = tab === 'ma'        ? 'flex' : 'none';
+  if (tab === 'ma') maRender();
+}
+
+// ── Mitarbeiter Auftrag ───────────────────────────────────────
+var MA_COLS = [
+  {k:'_artnr',   h:'Art.-Nr.'},
+  {k:'_modell',  h:'Modell-Nr.'},
+  {k:'_kred',    h:'Kred. Art.-Nr.'},
+  {k:'_ean',     h:'EAN'},
+  {k:'_bez',     h:'Bezeichnung'},
+  {k:'_marke',   h:'Marke'},
+  {k:'_wg',      h:'WG-Code'},
+  {k:'_saison',  h:'Saison'},
+  {k:'_farbe',   h:'Farbe'},
+  {k:'_groesse', h:'Groesse'},
+  {k:'_ek',      h:'Letzt. EK'},
+  {k:'_online',  h:'Online Preis'},
+  {k:'_maprice', h:'Mitarbeiterpreis'},
+  {k:'_rabatt',  h:'Rabatt fuer D365'}
+];
+
+var maStateMarke   = new Set();
+var maStateSaison  = new Set();
+var maFiltered     = [];
+var maMsBuilt      = false;
+
+function maGetRows() {
+  var input = document.getElementById('ma-artnr-input').value;
+  var nums = input.split(/[\n\r\s,;]+/).map(function(s){ return s.trim().toUpperCase(); }).filter(Boolean);
+  var numSet = {};
+  for (var i = 0; i < nums.length; i++) numSet[nums[i]] = true;
+
+  return calc.filter(function(r) {
+    if (nums.length > 0 && !numSet[r._artnr.toUpperCase()]) return false;
+    if (maStateMarke.size  && !maStateMarke.has(r._marke))   return false;
+    if (maStateSaison.size && !maStateSaison.has(r._saison))  return false;
+    return true;
+  }).map(function(r) {
+    var ek     = nv(r._ek);
+    var online = nv(r._online);
+    var maprice = Math.round(ek * 1.1 * 1.19 * 100) / 100;
+    var rabatt  = Math.round((online - maprice) * 100) / 100;
+    var out = {};
+    for (var k in r) out[k] = r[k];
+    out._maprice = maprice;
+    out._rabatt  = rabatt;
+    return out;
+  });
+}
+
+function maFilter() { maRender(); }
+
+function maRender() {
+  if (!calc.length) return;
+  if (!maMsBuilt) { maBuildMs(); maMsBuilt = true; }
+  maFiltered = maGetRows();
+
+  var thead = document.getElementById('ma-th');
+  var tbody = document.getElementById('ma-tb');
+  thead.innerHTML = '';
+  var htr = document.createElement('tr');
+  for (var hi = 0; hi < MA_COLS.length; hi++) {
+    var th = document.createElement('th');
+    th.textContent = MA_COLS[hi].h;
+    htr.appendChild(th);
+  }
+  thead.appendChild(htr);
+
+  var frag = document.createDocumentFragment();
+  var sum = 0;
+  for (var ri = 0; ri < maFiltered.length; ri++) {
+    var row = maFiltered[ri];
+    var tr = document.createElement('tr');
+    for (var ci = 0; ci < MA_COLS.length; ci++) {
+      var td = document.createElement('td');
+      var v = row[MA_COLS[ci].k];
+      if (MA_COLS[ci].k === '_maprice') {
+        td.textContent = nv(v).toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+        td.style.fontWeight = '700';
+        td.style.color = 'var(--acc)';
+        sum += nv(v);
+      } else if (MA_COLS[ci].k === '_rabatt') {
+        var rv = nv(v);
+        td.textContent = rv.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+        td.style.color = rv >= 0 ? 'var(--grn)' : 'var(--red)';
+      } else if (MA_COLS[ci].k === '_ek' || MA_COLS[ci].k === '_online') {
+        td.textContent = nv(v).toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+      } else {
+        td.textContent = (v !== undefined && v !== null) ? v : '';
+      }
+      tr.appendChild(td);
+    }
+    frag.appendChild(tr);
+  }
+  tbody.innerHTML = '';
+  tbody.appendChild(frag);
+
+  document.getElementById('ma-cnt').textContent = maFiltered.length.toLocaleString('de-DE');
+  document.getElementById('ma-sum').textContent = 'EUR ' + sum.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function maBuildMs() {
+  var markeVals = [], saisonVals = [], seenM = {}, seenS = {};
+  for (var i = 0; i < calc.length; i++) {
+    var m = calc[i]._marke; var s = calc[i]._saison;
+    if (m && !seenM[m]) { seenM[m] = true; markeVals.push(m); }
+    if (s && !seenS[s]) { seenS[s] = true; saisonVals.push(s); }
+  }
+  markeVals.sort(); saisonVals.sort();
+  buildMaMs('maMsMarke', markeVals, maStateMarke);
+  buildMaMs('maMsSaison', saisonVals, maStateSaison);
+}
+
+function buildMaMs(id, vals, stateSet) {
+  var wrap = document.getElementById(id);
+  wrap.innerHTML = '';
+  var btn = document.createElement('div');
+  btn.className = 'msb';
+  var lspan = document.createElement('span');
+  lspan.id = id + 'l'; lspan.textContent = 'Alle';
+  btn.appendChild(lspan); btn.appendChild(document.createTextNode(' v'));
+  btn.onclick = function(e) { e.stopPropagation(); togDd(id + 'd'); };
+  var dd = document.createElement('div');
+  dd.className = 'msd'; dd.id = id + 'd';
+  var sh = document.createElement('div'); sh.className = 'mss';
+  var si = document.createElement('input'); si.type = 'text'; si.placeholder = 'Suchen...';
+  si.oninput = function(e) { e.stopPropagation(); filtMs(dd, si.value); };
+  si.onclick  = function(e) { e.stopPropagation(); };
+  sh.appendChild(si); dd.appendChild(sh);
+  for (var vi = 0; vi < vals.length; vi++) {
+    var v = vals[vi];
+    var lbl = document.createElement('label');
+    lbl.className = 'msi'; lbl.dataset.val = v.toLowerCase();
+    var cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = v;
+    (function(val, ss, cb) {
+      cb.onchange = function() {
+        if (cb.checked) ss.add(val); else ss.delete(val);
+        var s = ss;
+        document.getElementById(id + 'l').textContent = s.size ? s.size + ' gew.' : 'Alle';
+        maFilter();
+      };
+    })(v, stateSet, cb);
+    lbl.appendChild(cb); lbl.appendChild(document.createTextNode(v));
+    dd.appendChild(lbl);
+  }
+  wrap.appendChild(btn); wrap.appendChild(dd);
+}
+
+function maClear() {
+  document.getElementById('ma-artnr-input').value = '';
+  maStateMarke.clear(); maStateSaison.clear();
+  document.getElementById('maMsMarkel').textContent = 'Alle';
+  document.getElementById('maMsSaisonl').textContent = 'Alle';
+  var cbs = document.querySelectorAll('#maMsMarkedd input[type=checkbox], #maMsSaisondd input[type=checkbox]');
+  for (var i = 0; i < cbs.length; i++) cbs[i].checked = false;
+  maFilter();
+}
+
+function maExport() {
+  if (!maFiltered.length) { alert('Keine Artikel zum Exportieren'); return; }
+  var rows = maFiltered.map(function(r) {
+    var obj = {};
+    obj['Artikelnummer']      = r._artnr;
+    obj['Modellnummer']       = r._modell;
+    obj['Kred. Artikelnummer']= r._kred;
+    obj['EAN']                = r._ean;
+    obj['Bezeichnung']        = r._bez;
+    obj['Marke']              = r._marke;
+    obj['WG-Code']            = r._wg;
+    obj['Saison']             = r._saison;
+    obj['Farbe']              = r._farbe;
+    obj['Groesse']            = r._groesse;
+    obj['Letzt. EK']          = nv(r._ek);
+    obj['Online Preis']       = nv(r._online);
+    obj['Mitarbeiterpreis']   = nv(r._maprice);
+    obj['Rabatt fuer D365']   = nv(r._rabatt);
+    return obj;
+  });
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Mitarbeiter Auftrag');
+  XLSX.writeFile(wb, 'Mitarbeiter_Auftrag_' + today() + '.xlsx');
+}
+
+// ── Tab switching ─────────────────────────────────────────────
 loadS();
 try { var ts = localStorage.getItem('no_ts'); if (ts) document.getElementById('lupd').innerHTML = 'Letzte Aktualisierung: <strong>' + ts + '</strong>'; } catch(e) {}
 document.getElementById('pwinp').focus();
