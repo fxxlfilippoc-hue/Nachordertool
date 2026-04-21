@@ -401,24 +401,27 @@ function loadCSV() {
       return res.text();
     })
     .then(function(text) {
-      var firstLine = text.split('\n')[0];
-      var cntSemi  = (firstLine.match(/;/g)  || []).length;
-      var cntComma = (firstLine.match(/,/g)  || []).length;
-      var cntTab   = (firstLine.match(/\t/g) || []).length;
-      var sep = ';';
-      if (cntComma > cntSemi && cntComma > cntTab) sep = ',';
-      if (cntTab > cntSemi && cntTab > cntComma) sep = '\t';
       var lines = text.split('\n');
-      var headers = lines[0].split(sep).map(function(h) {
+      var firstLine = lines[0];
+      // If first line starts with a quote, fields are quoted - use comma
+      // Otherwise count separators
+      var sep = ',';
+      if (firstLine.indexOf('"') === -1) {
+        var cntSemi  = (firstLine.match(/;/g)  || []).length;
+        var cntComma = (firstLine.match(/,/g)  || []).length;
+        sep = cntSemi >= cntComma ? ';' : ',';
+      }
+      var headers = splitCSVLine(firstLine, sep).map(function(h) {
         return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
       });
+      // sanity check: if no 'artikel' found, try other separator
       var hasArtnr = false;
       for (var hi = 0; hi < headers.length; hi++) {
         if (headers[hi].toLowerCase().indexOf('artikel') !== -1) { hasArtnr = true; break; }
       }
       if (!hasArtnr) {
         sep = sep === ';' ? ',' : ';';
-        headers = lines[0].split(sep).map(function(h) {
+        headers = splitCSVLine(firstLine, sep).map(function(h) {
           return h.replace(/^"|"$/g, '').replace(/^\uFEFF/, '').trim();
         });
       }
