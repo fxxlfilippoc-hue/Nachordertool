@@ -150,7 +150,18 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="sep"></div>
   <button class="btn sec" id="reloadBtn" onclick="loadCSV()">&#8635; Daten aktualisieren</button>
   <button class="btn sec" onclick="colWidthReset()" style="margin-left:4px;">&#8596; Breiten reset</button>
-  <button id="colpicker-btn" onclick="openColPicker()" style="margin-left:4px;">&#9776; Spalten</button>
+  <div id="colpicker-wrap">
+    <button id="colpicker-btn" onclick="toggleColPicker()">&#9776; Spalten</button>
+    <div id="colpicker-dropdown">
+      <div id="colpicker-search"><input type="text" placeholder="Suchen..." oninput="cpSearch(this.value)" onclick="event.stopPropagation()"></div>
+      <div id="colpicker-list"></div>
+      <div class="cp-footer">
+        <button class="btn sec" onclick="cpAll(true)">Alle an</button>
+        <button class="btn sec" onclick="cpAll(false)">Alle aus</button>
+        <button class="btn sec" onclick="cpReset()">Reset</button>
+      </div>
+    </div>
+  </div>
   <div id="finfo" style="color:var(--txt2);font-size:12px;margin-left:8px;"></div>
   <div id="lupd" style="margin-left:auto;color:var(--txt2);font-size:12px;"></div>
 </div>
@@ -159,18 +170,6 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 <div id="tabs">
   <div class="tab active" id="tab-no" onclick="switchTab('no')">&#128230; Nachorder Tool</div>
   <div class="tab" id="tab-ma" onclick="switchTab('ma')">&#128100; Mitarbeiter Auftrag</div>
-</div>
-
-<!-- Column picker -->
-<div id="colpicker-overlay" onclick="closeColPicker()"></div>
-<div id="colpicker-panel">
-  <h3>Spalten <button onclick="closeColPicker()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);">&#10005;</button></h3>
-  <div id="colpicker-list"></div>
-  <div class="cp-actions">
-    <button class="btn sec" onclick="cpAll(true)">Alle an</button>
-    <button class="btn sec" onclick="cpAll(false)">Alle aus</button>
-    <button class="btn sec" onclick="cpReset()">Reset</button>
-  </div>
 </div>
 
 <!-- Nachorder section -->
@@ -293,7 +292,7 @@ var CK = {};
 CK.artnr=''; CK.bez=''; CK.ean=''; CK.kred=''; CK.wg='';
 CK.marke=''; CK.modell=''; CK.saison=''; CK.farbe=''; CK.groesse='';
 CK.a30=''; CK.a7=''; CK.bestand=''; CK.offen=''; CK.ek='';
-CK.bem=''; CK.online='';
+CK.bem=''; CK.online=''; CK.uvp='';
 
 var ALL_COLS = [
   {k:'_ampel',   h:'Status'},
@@ -316,6 +315,8 @@ var ALL_COLS = [
   {k:'_best',    h:'Bestellvorschlag'},
   {k:'_man',     h:'Meine Menge'},
   {k:'_ek',      h:'Letzt. EK'},
+  {k:'_uvp',     h:'UVP'},
+  {k:'_online',  h:'Online Preis'},
   {k:'_bem',     h:'Bemerkung'}
 ];
 
@@ -408,11 +409,20 @@ function getVisibleCols() {
   return ALL_COLS.filter(function(c) { return colVisible[c.k] !== false; });
 }
 
-function openColPicker() {
+function toggleColPicker() {
+  var dd = document.getElementById('colpicker-dropdown');
+  var isOpen = dd.classList.contains('open');
+  if (!isOpen) buildCpList('');
+  dd.classList.toggle('open', !isOpen);
+}
+
+function buildCpList(q) {
   var list = document.getElementById('colpicker-list');
   list.innerHTML = '';
+  var lq = q.toLowerCase();
   for (var i = 0; i < ALL_COLS.length; i++) {
     var col = ALL_COLS[i];
+    if (lq && col.h.toLowerCase().indexOf(lq) === -1) continue;
     var lbl = document.createElement('label');
     lbl.className = 'cp-item';
     var cb = document.createElement('input');
@@ -429,23 +439,22 @@ function openColPicker() {
     lbl.appendChild(document.createTextNode(col.h));
     list.appendChild(lbl);
   }
-  document.getElementById('colpicker-overlay').style.display = 'block';
-  document.getElementById('colpicker-panel').style.display = 'block';
 }
 
+function cpSearch(q) { buildCpList(q); }
+
 function closeColPicker() {
-  document.getElementById('colpicker-overlay').style.display = 'none';
-  document.getElementById('colpicker-panel').style.display = 'none';
+  document.getElementById('colpicker-dropdown').classList.remove('open');
 }
 
 function cpAll(val) {
   for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = val;
-  saveColVisible(); openColPicker(); renderTable();
+  saveColVisible(); buildCpList(''); renderTable();
 }
 
 function cpReset() {
   for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = true;
-  saveColVisible(); openColPicker(); renderTable();
+  saveColVisible(); buildCpList(''); renderTable();
 }
 function checkPw() {
   if (document.getElementById('pwinp').value === PW) {
@@ -495,6 +504,7 @@ function detectCols(headers) {
     if (h === 'Offen')               CK.offen   = h;
     if (h === 'BEMERKUNG')           CK.bem     = h;
     if (h === 'Preis_Online')        CK.online  = h;
+    if (h === 'UVP')                 CK.uvp     = h;
     if (hl.indexOf('hersteller') !== -1) CK.groesse = h;
     if (hl.indexOf('bestand')    !== -1) CK.bestand = h;
     if (hl.indexOf('letzter') !== -1 && hl.indexOf('wert') !== -1) CK.ek = h;
@@ -533,6 +543,7 @@ function calcRow(row) {
   r._farbe   = row[CK.farbe]   || '';
   r._groesse = row[CK.groesse] || '';
   r._ek      = row[CK.ek]      || '';
+  r._uvp     = row[CK.uvp]     || '';
   r._online  = row[CK.online]  || '';
   r._bem     = row[CK.bem]     || '';
   r._bestand = bestand;
@@ -658,7 +669,12 @@ function buildMs(cfg, vals) {
 function filtMs(dd,q){var lq=q.toLowerCase();var items=dd.querySelectorAll('.msi');for(var i=0;i<items.length;i++)items[i].style.display=items[i].dataset.val.indexOf(lq)!==-1?'':'none';}
 function updMsLbl(cfg){var s=msState[cfg.key];document.getElementById(cfg.id+'l').textContent=s.size?s.size+' gew.':'Alle';}
 function togDd(id){var dds=document.querySelectorAll('.msd');for(var i=0;i<dds.length;i++){if(dds[i].id!==id)dds[i].classList.remove('open');}document.getElementById(id).classList.toggle('open');}
-document.addEventListener('click',function(){var dds=document.querySelectorAll('.msd');for(var i=0;i<dds.length;i++)dds[i].classList.remove('open');});
+document.addEventListener('click', function(e) {
+  var dds = document.querySelectorAll('.msd');
+  for (var i = 0; i < dds.length; i++) dds[i].classList.remove('open');
+  var wrap = document.getElementById('colpicker-wrap');
+  if (wrap && !wrap.contains(e.target)) closeColPicker();
+});
 
 function buildClusters() {
   var seen={},list=['Alle'];
@@ -706,15 +722,16 @@ function addResizer(th,colKey){
 function colWidthReset(){colWidths={};try{localStorage.removeItem('no_colw');}catch(e){}renderTable();}
 
 function renderTable(){
+  var VCOLS = getVisibleCols();
   var thead=document.getElementById('th'),tbody=document.getElementById('tb');
   thead.innerHTML='';var htr=document.createElement('tr');
-  for(var hi=0;hi<ALL_COLS.length;hi++){var col=ALL_COLS[hi];var th=document.createElement('th');th.style.position='relative';th.textContent=col.h;if(sortK===col.k)th.className=sortD===1?'asc':'desc';if(colWidths[col.k]){th.style.width=colWidths[col.k]+'px';th.style.minWidth=colWidths[col.k]+'px';}(function(k){th.onclick=function(){if(sortK===k)sortD*=-1;else{sortK=k;sortD=1;}applyF();};})(col.k);addResizer(th,col.k);htr.appendChild(th);}
+  for(var hi=0;hi<VCOLS.length;hi++){var col=VCOLS[hi];var th=document.createElement('th');th.style.position='relative';th.textContent=col.h;if(sortK===col.k)th.className=sortD===1?'asc':'desc';if(colWidths[col.k]){th.style.width=colWidths[col.k]+'px';th.style.minWidth=colWidths[col.k]+'px';}(function(k){th.onclick=function(){if(sortK===k)sortD*=-1;else{sortK=k;sortD=1;}applyF();};})(col.k);addResizer(th,col.k);htr.appendChild(th);}
   thead.appendChild(htr);
   var slice=filtered.slice(0,500),frag=document.createDocumentFragment();
   for(var ri=0;ri<slice.length;ri++){
     var row=slice[ri],tr=document.createElement('tr');
-    for(var ci=0;ci<ALL_COLS.length;ci++){
-      var col=ALL_COLS[ci],td=document.createElement('td'),v=row[col.k];
+    for(var ci=0;ci<VCOLS.length;ci++){
+      var col=VCOLS[ci],td=document.createElement('td'),v=row[col.k];
       if(col.k==='_ampel'){var dot=document.createElement('span');dot.className='dot '+(v||'green');td.appendChild(dot);}
       else if(col.k==='_trend'){if(v){td.textContent='\uD83D\uDD25';td.style.fontSize='14px';}}
       else if(col.k==='_best'){var hm=row._man!==''&&row._man!==undefined&&row._man!==null;td.textContent=hm?'-':(v>0?v:'-');if(!hm&&v>0)td.className='ocell';if(hm)td.style.color='var(--txt2)';}
@@ -723,7 +740,9 @@ function renderTable(){
         inp.style.width='70px';inp.style.textAlign='center';inp.style.fontWeight='700';inp.style.color='var(--acc2)';inp.style.background='var(--sur)';inp.style.border='1px solid '+(row._man?'var(--acc2)':'var(--brd)');inp.style.borderRadius='4px';inp.style.padding='2px 6px';inp.style.fontSize='12px';inp.style.outline='none';
         (function(r,inp){inp.onfocus=function(){inp.style.borderColor='var(--acc2)';};inp.onblur=function(){if(!inp.value)inp.style.borderColor='var(--brd)';};
           inp.oninput=function(){var val=inp.value.trim();r._man=val;if(val){overrides[r._artnr]=val;inp.style.borderColor='var(--acc2)';}else{delete overrides[r._artnr];inp.style.borderColor='var(--brd)';}
-            var tds=inp.closest('tr').querySelectorAll('td'),bi=-1;for(var xi=0;xi<ALL_COLS.length;xi++){if(ALL_COLS[xi].k==='_best'){bi=xi;break;}}
+            var tds=inp.closest('tr').querySelectorAll('td');
+            var VC=getVisibleCols(),bi=-1;
+            for(var xi=0;xi<VC.length;xi++){if(VC[xi].k==='_best'){bi=xi;break;}}
             if(bi>=0&&tds[bi]){var bc=tds[bi];if(val){bc.textContent='-';bc.className='';bc.style.color='var(--txt2)';}else{bc.textContent=r._best>0?String(r._best):'-';bc.className=r._best>0?'ocell':'';bc.style.color='';}}renderStats();};})(row,inp);
         td.appendChild(inp);
       }
@@ -734,7 +753,7 @@ function renderTable(){
     frag.appendChild(tr);
   }
   tbody.innerHTML='';tbody.appendChild(frag);
-  if(filtered.length>500){var mr=document.createElement('tr'),md=document.createElement('td');md.colSpan=ALL_COLS.length;md.className='nodata';md.textContent='... '+(filtered.length-500)+' weitere Artikel';mr.appendChild(md);tbody.appendChild(mr);}
+  if(filtered.length>500){var mr=document.createElement('tr'),md=document.createElement('td');md.colSpan=VCOLS.length;md.className='nodata';md.textContent='... '+(filtered.length-500)+' weitere Artikel';mr.appendChild(md);tbody.appendChild(mr);}
 }
 
 function renderStats(){
@@ -907,6 +926,7 @@ function saveS(){try{localStorage.setItem('no_s',JSON.stringify({l:document.getE
 function loadS(){try{var s=JSON.parse(localStorage.getItem('no_s')||'{}');if(s.l)document.getElementById('sLief').value=s.l;if(s.r)document.getElementById('sReich').value=s.r;if(s.u)document.getElementById('sRund').value=s.u;}catch(e){}}
 
 try{colWidths=JSON.parse(localStorage.getItem('no_colw')||'{}');}catch(e){colWidths={};}
+initColVisible();
 loadS();
 try{var ts=localStorage.getItem('no_ts');if(ts)document.getElementById('lupd').innerHTML='Letzte Aktualisierung: <strong>'+ts+'</strong>';}catch(e){}
 document.getElementById('pwinp').focus();
