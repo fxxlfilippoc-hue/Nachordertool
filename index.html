@@ -150,6 +150,7 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="sep"></div>
   <button class="btn sec" id="reloadBtn" onclick="loadCSV()">&#8635; Daten aktualisieren</button>
   <button class="btn sec" onclick="colWidthReset()" style="margin-left:4px;">&#8596; Breiten reset</button>
+  <button id="colpicker-btn" onclick="openColPicker()" style="margin-left:4px;">&#9776; Spalten</button>
   <div id="finfo" style="color:var(--txt2);font-size:12px;margin-left:8px;"></div>
   <div id="lupd" style="margin-left:auto;color:var(--txt2);font-size:12px;"></div>
 </div>
@@ -160,7 +161,19 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
   <div class="tab" id="tab-ma" onclick="switchTab('ma')">&#128100; Mitarbeiter Auftrag</div>
 </div>
 
-<!-- ══ NACHORDER SECTION ══ -->
+<!-- Column picker -->
+<div id="colpicker-overlay" onclick="closeColPicker()"></div>
+<div id="colpicker-panel">
+  <h3>Spalten <button onclick="closeColPicker()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--txt2);">&#10005;</button></h3>
+  <div id="colpicker-list"></div>
+  <div class="cp-actions">
+    <button class="btn sec" onclick="cpAll(true)">Alle an</button>
+    <button class="btn sec" onclick="cpAll(false)">Alle aus</button>
+    <button class="btn sec" onclick="cpReset()">Reset</button>
+  </div>
+</div>
+
+<!-- Nachorder section -->
 <div id="no-section">
 <div id="sbar">
   <div class="sg"><label>Lieferzeit:</label>
@@ -373,7 +386,67 @@ var WG = {
   R031:'Sonstiges',R032:'Sonstiges',R035:'Sonstiges',R041:'Sonstiges',R999:'Sonstiges'
 };
 
-// ── Auth ─────────────────────────────────────────────────────
+var colVisible = {};
+
+function initColVisible() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('no_colvis') || 'null');
+    for (var i = 0; i < ALL_COLS.length; i++) {
+      var k = ALL_COLS[i].k;
+      colVisible[k] = (saved && saved[k] !== undefined) ? saved[k] : true;
+    }
+  } catch(e) {
+    for (var j = 0; j < ALL_COLS.length; j++) colVisible[ALL_COLS[j].k] = true;
+  }
+}
+
+function saveColVisible() {
+  try { localStorage.setItem('no_colvis', JSON.stringify(colVisible)); } catch(e) {}
+}
+
+function getVisibleCols() {
+  return ALL_COLS.filter(function(c) { return colVisible[c.k] !== false; });
+}
+
+function openColPicker() {
+  var list = document.getElementById('colpicker-list');
+  list.innerHTML = '';
+  for (var i = 0; i < ALL_COLS.length; i++) {
+    var col = ALL_COLS[i];
+    var lbl = document.createElement('label');
+    lbl.className = 'cp-item';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = colVisible[col.k] !== false;
+    (function(k, cb) {
+      cb.onchange = function() {
+        colVisible[k] = cb.checked;
+        saveColVisible();
+        renderTable();
+      };
+    })(col.k, cb);
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(col.h));
+    list.appendChild(lbl);
+  }
+  document.getElementById('colpicker-overlay').style.display = 'block';
+  document.getElementById('colpicker-panel').style.display = 'block';
+}
+
+function closeColPicker() {
+  document.getElementById('colpicker-overlay').style.display = 'none';
+  document.getElementById('colpicker-panel').style.display = 'none';
+}
+
+function cpAll(val) {
+  for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = val;
+  saveColVisible(); openColPicker(); renderTable();
+}
+
+function cpReset() {
+  for (var i = 0; i < ALL_COLS.length; i++) colVisible[ALL_COLS[i].k] = true;
+  saveColVisible(); openColPicker(); renderTable();
+}
 function checkPw() {
   if (document.getElementById('pwinp').value === PW) {
     document.getElementById('pwscreen').style.display = 'none';
