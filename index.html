@@ -122,6 +122,21 @@ tbody td{padding:4px 7px;white-space:nowrap;font-size:12px;overflow:hidden;text-
 ::-webkit-scrollbar{width:6px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:#b0b8c8;border-radius:3px;}
+
+/* ── COLUMN PICKER ──────────────────────────────────── */
+#colpicker-wrap{position:relative;}
+#colpicker-btn{background:var(--sur2);border:1px solid var(--brd);color:var(--txt);border-radius:5px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;}
+#colpicker-btn:hover{border-color:var(--acc);color:var(--acc);}
+#colpicker-dropdown{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:500;background:var(--sur);border:1px solid var(--brd);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);width:320px;}
+#colpicker-dropdown.open{display:block;}
+#colpicker-search{padding:10px 10px 6px;}
+#colpicker-search input{width:100%;background:var(--sur2);}
+#colpicker-list{padding:6px 0;max-height:340px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:0;}
+#colpicker-list label{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--txt);transition:background .1s;}
+#colpicker-list label:hover{background:var(--sur2);}
+#colpicker-list input[type=checkbox]{accent-color:var(--acc);width:14px;height:14px;cursor:pointer;flex-shrink:0;}
+.cp-footer{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--brd);background:var(--sur2);border-radius:0 0 8px 8px;}
+.cp-footer .btn{flex:1;padding:5px 0;font-size:12px;text-align:center;}
 </style>
 </head>
 <body>
